@@ -3,7 +3,6 @@ import {
   useField,
   useFieldArray,
   useMultipleWatch,
-  useWatch,
 } from '../../src/FormProvider';
 
 interface InputFieldProps {
@@ -30,7 +29,7 @@ export function InputField(props: InputFieldProps) {
             field.setFieldValue(evt.target.value);
           }
         }}
-        value={field.fieldValue}
+        value={field.fieldValue ?? ''}
         onBlur={field.onBlur}
       />
     </div>

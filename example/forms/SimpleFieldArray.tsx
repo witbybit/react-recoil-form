@@ -4,7 +4,7 @@ import { useForm, withFormProvider } from '../../src/FormProvider';
 import { InputField, TableField, WatchField } from './Fields';
 
 function SimpleFieldArray(props) {
-  const { handleSubmit } = useForm({
+  const { handleSubmit, resetInitialValues } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
     initialValues: { items: [{}] },
@@ -29,6 +29,7 @@ function SimpleFieldArray(props) {
         />
         <div>
           <button type="submit">Submit</button>
+          <button type="button" onClick={() => resetInitialValues({})}>Reset</button>
         </div>
       </form>
       <Results />

@@ -11,6 +11,7 @@ export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
   return result === undefined || result === obj ? defaultValue : result;
 }
 
+// Note that a[2].b behaves as if a is an array while a.2.b behaves like a is an object.
 export function setPathInObj(obj: any, path: string, value: any) {
   const pathArray = path.matchAll(/([^[.\]])+/g);
   let pathMatch = pathArray.next();
@@ -50,7 +51,7 @@ export function isDeepEqual(obj1: any, obj2: any) {
   }
 
   const keysA = Object.keys(obj1).filter(k => obj1[k] !== undefined);
-  const keysB = Object.keys(obj2).filter(k => obj2[k] !== undefined);;
+  const keysB = Object.keys(obj2).filter(k => obj2[k] !== undefined);
 
   if (keysA.length !== keysB.length) {
     return false;

@@ -169,123 +169,131 @@ function FormValuesObserver() {
   // TODO: Capture overall errors here
   const setFormValues = useSetRecoilState(formValuesAtom);
 
-  useRecoilTransactionObserver_UNSTABLE(({ snapshot, previousSnapshot }) => {
-    const modifiedAtoms = (snapshot as any).getNodes_UNSTABLE({
-      isModified: true,
-    });
-    const formFieldAtoms: any[] = [];
-    let modifiedAtomIt = modifiedAtoms.next();
-    const fieldArrayPathsToRemove: {
-      index: number;
-      fieldArrayPath: string | null;
-    }[] = [];
-    while (modifiedAtomIt && !modifiedAtomIt.done) {
-      const modifiedAtom = modifiedAtomIt.value;
-      const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
-      const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(
-        modifiedAtom.key
-      );
-      if (fieldName) {
-        formFieldAtoms.push(modifiedAtom);
-      } else if (fieldArrayName) {
-        const newFieldArrayAtom = snapshot.getLoadable<IFieldArrayAtomValue>(
-          modifiedAtom
-        );
-        const prevFieldArrayAtom = previousSnapshot.getLoadable<
-          IFieldArrayAtomValue
-        >(modifiedAtom);
-        if (
-          prevFieldArrayAtom.state === 'hasValue' &&
-          newFieldArrayAtom.state === 'hasValue'
-        ) {
-          const prevRowIds = prevFieldArrayAtom.contents?.rowIds ?? [];
-          const newRowIds = newFieldArrayAtom.contents?.rowIds ?? [];
-          const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(
-            modifiedAtom.key
-          );
-          if (prevRowIds.length > newRowIds.length) {
-            let prevRowIndex = -1;
-            for (const prevRowId of prevRowIds) {
-              prevRowIndex++;
-              if (newRowIds.indexOf(prevRowId) === -1) {
-                fieldArrayPathsToRemove.push({
-                  fieldArrayPath: fieldArrayName,
-                  index: prevRowIndex,
-                });
-              }
-            }
-          }
-        }
-      }
-      modifiedAtomIt = modifiedAtoms.next();
-    }
-    if (formFieldAtoms.length || fieldArrayPathsToRemove.length) {
-      setFormValues(values => {
-        const newFormValues = produce(values, draftValues => {
-          for (const fieldArrPathRemove of fieldArrayPathsToRemove) {
-            if (fieldArrPathRemove.fieldArrayPath) {
-              getPathInObj(
-                draftValues.values,
-                fieldArrPathRemove.fieldArrayPath
-              )?.splice?.(fieldArrPathRemove.index, 1);
-              getPathInObj(
-                draftValues.extraInfos,
-                fieldArrPathRemove.fieldArrayPath
-              )?.splice?.(fieldArrPathRemove.index, 1);
-            }
-          }
-          for (const modifiedAtom of formFieldAtoms) {
-            const atomLoadable = snapshot.getLoadable<IFieldAtomValue>(
-              modifiedAtom
-            );
-            if (atomLoadable.state === 'hasValue') {
-              const atomValue = atomLoadable.contents;
-              // if (atomValue?.data !== undefined) {
-                const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
-                if (fieldName) {
-                  const fieldArrayParts = getFieldArrayParts(fieldName);
-                  if (fieldArrayParts) {
-                    const fieldArrayLoadable = snapshot.getLoadable<
-                      IFieldArrayAtomValue
-                    >(fieldArraysAtomFamily(fieldArrayParts.fieldArrayName));
-                    if (fieldArrayLoadable.state === 'hasValue') {
-                      const rowIndex = fieldArrayLoadable.contents.rowIds.indexOf(
-                        fieldArrayParts.rowId
-                      );
-                      const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-                      setPathInObj(
-                        draftValues.values,
-                        fieldPathInValues,
-                        cloneDeep(atomLoadable.contents.data)
-                      );
-                      setPathInObj(
-                        draftValues.extraInfos,
-                        fieldPathInValues,
-                        cloneDeep(atomLoadable.contents.extraInfo)
-                      );
-                    }
-                  } else {
-                    setPathInObj(
-                      draftValues.values,
-                      fieldName,
-                      cloneDeep(atomLoadable.contents.data)
-                    );
-                    setPathInObj(
-                      draftValues.extraInfos,
-                      fieldName,
-                      cloneDeep(atomLoadable.contents.extraInfo)
-                    );
-                  }
-                // }
-              } else {
-                // TODO: Delete from final data
-              }
-            }
-          }
-        });
-        return newFormValues;
-      });
-    }
+  useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
+    setFormValues(getFormValues(snapshot));
+    // DEVNOTE: The approach below will be more efficient since it only deals with modified atoms.
+    // However since there were some minor differences between the values here and the final values on submit,
+    // we are temporarily using the simple solution of going through all atoms via getFormValues().
+    // const modifiedAtoms = (snapshot as any).getNodes_UNSTABLE({
+    //   isModified: true,
+    // });
+    // const formFieldAtoms: any[] = [];
+    // let modifiedAtomIt = modifiedAtoms.next();
+    // const fieldArrayPathsToRemove: {
+    //   index: number;
+    //   fieldArrayPath: string | null;
+    // }[] = [];
+    // while (modifiedAtomIt && !modifiedAtomIt.done) {
+    //   const modifiedAtom = modifiedAtomIt.value;
+    //   const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
+    //   const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(
+    //     modifiedAtom.key
+    //   );
+    //   if (fieldName) {
+    //     formFieldAtoms.push(modifiedAtom);
+    //   } else if (fieldArrayName) {
+    //     const newFieldArrayAtom = snapshot.getLoadable<IFieldArrayAtomValue>(
+    //       modifiedAtom
+    //     );
+    //     const prevFieldArrayAtom = previousSnapshot.getLoadable<
+    //       IFieldArrayAtomValue
+    //     >(modifiedAtom);
+    //     if (
+    //       prevFieldArrayAtom.state === 'hasValue' &&
+    //       newFieldArrayAtom.state === 'hasValue'
+    //     ) {
+    //       const prevRowIds = prevFieldArrayAtom.contents?.rowIds ?? [];
+    //       const newRowIds = newFieldArrayAtom.contents?.rowIds ?? [];
+    //       const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(
+    //         modifiedAtom.key
+    //       );
+    //       if (prevRowIds.length > newRowIds.length) {
+    //         let prevRowIndex = -1;
+    //         for (const prevRowId of prevRowIds) {
+    //           prevRowIndex++;
+    //           if (newRowIds.indexOf(prevRowId) === -1) {
+    //             fieldArrayPathsToRemove.push({
+    //               fieldArrayPath: fieldArrayName,
+    //               index: prevRowIndex,
+    //             });
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    //   modifiedAtomIt = modifiedAtoms.next();
+    // }
+    // if (formFieldAtoms.length || fieldArrayPathsToRemove.length) {
+    //   setFormValues(values => {
+    //     const newFormValues = produce(values, draftValues => {
+    //       for (const fieldArrPathRemove of fieldArrayPathsToRemove) {
+    //         if (fieldArrPathRemove.fieldArrayPath) {
+    //           getPathInObj(
+    //             draftValues.values,
+    //             fieldArrPathRemove.fieldArrayPath
+    //           )?.splice?.(fieldArrPathRemove.index, 1);
+    //           getPathInObj(
+    //             draftValues.extraInfos,
+    //             fieldArrPathRemove.fieldArrayPath
+    //           )?.splice?.(fieldArrPathRemove.index, 1);
+    //         }
+    //       }
+    //       for (const modifiedAtom of formFieldAtoms) {
+    //         const atomLoadable = snapshot.getLoadable<IFieldAtomValue>(
+    //           modifiedAtom
+    //         );
+    //         if (atomLoadable.state === 'hasValue') {
+    //           // const atomValue = atomLoadable.contents;
+    //           // if (atomValue?.data !== undefined) {
+    //           const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
+    //           if (fieldName) {
+    //             const fieldArrayParts = getFieldArrayParts(fieldName);
+    //             if (fieldArrayParts) {
+    //               const fieldArrayLoadable = snapshot.getLoadable<
+    //                 IFieldArrayAtomValue
+    //               >(fieldArraysAtomFamily(fieldArrayParts.fieldArrayName));
+    //               if (fieldArrayLoadable.state === 'hasValue') {
+    //                 const rowIndex = fieldArrayLoadable.contents.rowIds.indexOf(
+    //                   fieldArrayParts.rowId
+    //                 );
+    //                 const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
+    //                 if (atomLoadable.contents.data !== undefined) {
+    //                   setPathInObj(
+    //                     draftValues.values,
+    //                     fieldPathInValues,
+    //                     cloneDeep(atomLoadable.contents.data)
+    //                   );
+    //                 }
+    //                 if (atomLoadable.contents.extraInfo !== undefined) {
+    //                   setPathInObj(
+    //                     draftValues.extraInfos,
+    //                     fieldPathInValues,
+    //                     cloneDeep(atomLoadable.contents.extraInfo)
+    //                   );
+    //                 }
+    //               }
+    //             } else {
+    //               setPathInObj(
+    //                 draftValues.values,
+    //                 fieldName,
+    //                 cloneDeep(atomLoadable.contents.data)
+    //               );
+    //               setPathInObj(
+    //                 draftValues.extraInfos,
+    //                 fieldName,
+    //                 cloneDeep(atomLoadable.contents.extraInfo)
+    //               );
+    //             }
+    //             // }
+    //           } else {
+    //             // TODO: Delete from final data
+    //           }
+    //         }
+    //       }
+    //     });
+    //     return newFormValues;
+    //   });
+    // }
   });
   return null;
 }
@@ -654,7 +662,11 @@ export function useFieldArray(props: IFieldArrayProps) {
               fieldsAtomFamily(fieldId)
             );
             if (fieldLoadable.state === 'hasValue') {
-              setPathInObj(result[index], fieldName, fieldLoadable.contents?.data);
+              setPathInObj(
+                result[index],
+                fieldName,
+                fieldLoadable.contents?.data
+              );
             }
           }
         }
@@ -890,14 +902,24 @@ interface IFormProps {
   submitForm?: (values: any, extraInfos?: any) => any;
   // DEVNOTE: Make onSubmit mandatory after submitForm is removed from usage
   onSubmit?: (values: any, extraInfos?: any) => any;
-  onError?: (errors: any) => any;
+  onError?: (errors?: IFieldError[] | null, formErrors?: any[] | null) => any;
   initialValues?: any;
-  validate?: (values: any) => any;
+  /**
+   * Useful in cases where you want to show the errors at the form level rather than field level
+   * To show field level errors, please use validate() function in useField instead
+   */
+  validate?: (data: any) => string[] | null | undefined;
   /**
    * Should data be preserved if a field unmounts?
    * By default, this is false
    */
   skipUnregister?: boolean;
+}
+
+interface IFieldError {
+  fieldName: string;
+  error: string;
+  type: 'field' | 'field-array';
 }
 
 function getFormValues(snapshot: Snapshot) {
@@ -922,7 +944,11 @@ function getFormValues(snapshot: Snapshot) {
           );
           if (rowIndex >= 0) {
             const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-            setPathInObj(values, fieldPathInValues, cloneDeep(formFieldData.data));
+            setPathInObj(
+              values,
+              fieldPathInValues,
+              cloneDeep(formFieldData.data)
+            );
             setPathInObj(
               extraInfos,
               fieldPathInValues,
@@ -948,6 +974,7 @@ export function useForm(props: IFormProps) {
     onError,
     onSubmit,
     skipUnregister,
+    validate,
   } = props;
   const [formState, setFormState] = useState<{ isSubmitting: boolean }>({
     isSubmitting: false,
@@ -1025,11 +1052,7 @@ export function useForm(props: IFormProps) {
   const validateAllFields = useRecoilCallback(
     ({ snapshot, set }) => (values: any) => {
       const atoms = (snapshot as any).getNodes_UNSTABLE();
-      const errors: {
-        fieldName: string;
-        error: string;
-        type: 'field' | 'field-array';
-      }[] = [];
+      const errors: IFieldError[] = [];
       let formFieldAtomsIt = atoms.next();
       while (formFieldAtomsIt && !formFieldAtomsIt.done) {
         const atom = formFieldAtomsIt.value;
@@ -1116,9 +1139,10 @@ export function useForm(props: IFormProps) {
       const values = getValues();
       const extraInfos = getExtraInfos();
       const errors = validateAllFields(values);
-      if (errors.length) {
+      const formErrors = validate?.(values);
+      if (errors.length || formErrors?.length) {
         if (onError) {
-          onError(errors);
+          onError(errors, formErrors);
         }
         return;
       }
@@ -1153,7 +1177,6 @@ export function useForm(props: IFormProps) {
     formState,
     handleReset,
     resetInitialValues: updateInitialValues,
-    // formValuesAtom,
   };
 }
 
