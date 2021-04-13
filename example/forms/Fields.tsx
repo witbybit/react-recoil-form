@@ -3,7 +3,7 @@ import {
   useField,
   useFieldArray,
   useMultipleWatch,
-} from '../../src/FormProvider';
+} from '../../src';
 
 interface InputFieldProps {
   type: 'number' | 'text';

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useForm, withFormProvider } from '../../src/FormProvider';
+import { useForm, withFormProvider } from '../../src';
 import { InputField } from './Fields';
 import { Results } from '../';
 

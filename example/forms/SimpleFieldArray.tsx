@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Results } from '..';
-import { useForm, withFormProvider } from '../../src/FormProvider';
+import { useForm, withFormProvider } from '../../src';
 import { InputField, TableField, WatchField } from './Fields';
 
 function SimpleFieldArray(props) {
