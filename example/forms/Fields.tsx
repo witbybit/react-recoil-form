@@ -1,9 +1,5 @@
 import * as React from 'react';
-import {
-  useField,
-  useFieldArray,
-  useMultipleWatch,
-} from '../../src';
+import { useField, useFieldArray, useMultipleWatch } from '../../src';
 
 interface InputFieldProps {
   type: 'number' | 'text';
@@ -51,27 +47,32 @@ export function TableField(props: TableFieldProps) {
     <div>
       <label htmlFor={props.name}>{props.name}</label>
       <table id={props.name}>
-        {tableField.fieldArrayProps.rowIds.map((r, idx) => {
-          return (
-            <tr>
-              <React.Fragment>
-                {props.fields.map(f => (
-                  <td key={f.name}>
-                    <InputField
-                      name={tableField.getFieldIdInArray(idx, f.name)}
-                      type={f.type}
-                    />
+        <tbody>
+          {tableField.fieldArrayProps.rowIds.map((r, idx) => {
+            return (
+              <tr key={r}>
+                <React.Fragment>
+                  {props.fields.map(f => (
+                    <td key={f.name}>
+                      <InputField
+                        name={tableField.getFieldIdInArray(idx, f.name)}
+                        type={f.type}
+                      />
+                    </td>
+                  ))}
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => tableField.remove(idx)}
+                    >
+                      Remove
+                    </button>
                   </td>
-                ))}
-                <td>
-                  <button type="button" onClick={() => tableField.remove(idx)}>
-                    Remove
-                  </button>
-                </td>
-              </React.Fragment>
-            </tr>
-          );
-        })}
+                </React.Fragment>
+              </tr>
+            );
+          })}
+        </tbody>
       </table>
       <button type="button" onClick={() => tableField.append()}>
         Add Row

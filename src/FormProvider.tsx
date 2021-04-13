@@ -170,7 +170,13 @@ function FormValuesObserver() {
   const setFormValues = useSetRecoilState(formValuesAtom);
 
   useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
-    setFormValues(getFormValues(snapshot));
+    setFormValues(values => {
+      const newValues = getFormValues(snapshot);
+      if (isDeepEqual(newValues, values)) {
+        return values;
+      }
+      return newValues;
+    });
     // DEVNOTE: The approach below will be more efficient since it only deals with modified atoms.
     // However since there were some minor differences between the values here and the final values on submit,
     // we are temporarily using the simple solution of going through all atoms via getFormValues().
