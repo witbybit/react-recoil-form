@@ -1169,7 +1169,15 @@ export function useForm(props: IFormProps) {
       }
       return res;
     },
-    [submitForm, getValues, getExtraInfos, validateAllFields, onSubmit, onError] //handleReset
+    [
+      submitForm,
+      getValues,
+      getExtraInfos,
+      validateAllFields,
+      onSubmit,
+      onError,
+      validate,
+    ]
   );
 
   return {

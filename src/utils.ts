@@ -80,7 +80,7 @@ export function isDeepEqual(obj1: any, obj2: any) {
 
 export function cloneDeep(obj: any) {
   if (!obj) {
-    return obj
+    return obj;
   }
   return JSON.parse(JSON.stringify(obj));
 }
