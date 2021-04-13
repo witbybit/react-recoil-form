@@ -18,7 +18,13 @@ import {
   useSetRecoilState,
 } from 'recoil';
 import produce from 'immer';
-import { getPathInObj, setPathInObj, isDeepEqual, cloneDeep } from './utils';
+import {
+  getPathInObj,
+  setPathInObj,
+  isDeepEqual,
+  cloneDeep,
+  isUndefined,
+} from './utils';
 
 function gan(atomName: string) {
   return `WitForm_${atomName}`;
@@ -950,21 +956,33 @@ function getFormValues(snapshot: Snapshot) {
           );
           if (rowIndex >= 0) {
             const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-            setPathInObj(
-              values,
-              fieldPathInValues,
-              cloneDeep(formFieldData.data)
-            );
-            setPathInObj(
-              extraInfos,
-              fieldPathInValues,
-              cloneDeep(formFieldData.extraInfo)
-            );
+            if (!isUndefined(formFieldData.data)) {
+              setPathInObj(
+                values,
+                fieldPathInValues,
+                cloneDeep(formFieldData.data)
+              );
+            }
+            if (!isUndefined(formFieldData.extraInfo)) {
+              setPathInObj(
+                extraInfos,
+                fieldPathInValues,
+                cloneDeep(formFieldData.extraInfo)
+              );
+            }
           }
         }
       } else {
-        setPathInObj(values, fieldName, cloneDeep(formFieldData.data));
-        setPathInObj(extraInfos, fieldName, cloneDeep(formFieldData.extraInfo));
+        if (!isUndefined(formFieldData.data)) {
+          setPathInObj(values, fieldName, cloneDeep(formFieldData.data));
+        }
+        if (!isUndefined(formFieldData.extraInfo)) {
+          setPathInObj(
+            extraInfos,
+            fieldName,
+            cloneDeep(formFieldData.extraInfo)
+          );
+        }
       }
     }
     formFieldAtomsIt = atoms.next();
@@ -990,8 +1008,6 @@ export function useForm(props: IFormProps) {
 
   const handleReset = useRecoilCallback(
     ({ snapshot, reset }) => () => {
-      // Resetting initial values version to allow it to be re-initialized
-      initValuesVer.current = 0;
       const atoms = (snapshot as any).getNodes_UNSTABLE();
       let atomIt = atoms.next();
       while (atomIt && !atomIt.done) {
@@ -1001,11 +1017,12 @@ export function useForm(props: IFormProps) {
             reset(atom);
           }
         } catch (err) {
-          // console.error(err)
+          if (process.env.NODE_ENV !== 'production') {
+            console.error(err);
+          }
         }
         atomIt = atoms.next();
       }
-      setFormState({ isSubmitting: false });
     },
     []
   );
@@ -1019,6 +1036,7 @@ export function useForm(props: IFormProps) {
 
   const updateInitialValues = useCallback(
     (values, skipUnregister?) => {
+      handleReset();
       initValuesVer.current = initValuesVer.current + 1;
       setFormInitialValues(init => {
         if (skipUnregister === undefined) {

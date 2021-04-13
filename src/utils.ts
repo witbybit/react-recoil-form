@@ -50,8 +50,8 @@ export function isDeepEqual(obj1: any, obj2: any) {
     return false;
   }
 
-  const keysA = Object.keys(obj1).filter(k => obj1[k] !== undefined);
-  const keysB = Object.keys(obj2).filter(k => obj2[k] !== undefined);
+  const keysA = Object.keys(obj1).filter(k => !isUndefined(obj1[k]));
+  const keysB = Object.keys(obj2).filter(k => !isUndefined(obj2[k]));
 
   if (keysA.length !== keysB.length) {
     return false;
@@ -83,4 +83,8 @@ export function cloneDeep(obj: any) {
     return obj;
   }
   return JSON.parse(JSON.stringify(obj));
+}
+
+export function isUndefined(val: any) {
+  return val === undefined || Number.isNaN(val);
 }
