@@ -17,15 +17,8 @@ import {
   useRecoilValue,
   useSetRecoilState,
 } from 'recoil';
-import lodashGet from 'lodash/get';
-import lodashSetWith from 'lodash/setWith';
-import clone from 'lodash/clone';
 import produce from 'immer';
-import lodashIsEqual from 'lodash/isEqual';
-
-// TODO: Introduce a setting to choose if numbers should be treated as index or not
-const lodashSet = (obj: any, path: any, value: any) =>
-  lodashSetWith(obj, path, value, Object);
+import { getPathInObj, setPathInObj, isDeepEqual, cloneDeep } from './utils';
 
 function gan(atomName: string) {
   return `WitForm_${atomName}`;
@@ -101,7 +94,12 @@ function getFieldArrayParts(fieldName: string) {
 
 export const fieldsAtomFamily = atomFamily<IFieldAtomValue, string>({
   key: gan('FormFields'),
-  default: { data: null, error: undefined, initVer: 0, touched: undefined },
+  default: {
+    data: undefined,
+    error: undefined,
+    initVer: 0,
+    touched: undefined,
+  },
 });
 
 export const formValuesAtom = atom<FinalValues>({
@@ -111,7 +109,7 @@ export const formValuesAtom = atom<FinalValues>({
 
 export const formInitialValuesAtom = atom<InitialValues>({
   key: gan('FormInitialValues'),
-  default: { values: null, version: 0 },
+  default: { values: {}, version: 0 },
 });
 
 export const fieldArraysAtomFamily = atomFamily<IFieldArrayAtomValue, string>({
@@ -135,15 +133,15 @@ export const fieldsAtomSelectorFamily = selectorFamily<
         const fieldArrayParts = fieldName.split('/');
         if (fieldArrayParts.length === 1) {
           const fieldAtomVal = get(fieldsAtomFamily(fieldName));
-          lodashSet(values, fieldName, fieldAtomVal?.data);
-          lodashSet(extraInfos, fieldName, fieldAtomVal?.extraInfo);
+          setPathInObj(values, fieldName, fieldAtomVal?.data);
+          setPathInObj(extraInfos, fieldName, fieldAtomVal?.extraInfo);
         } else {
           const fieldArrayFields = fieldArrayParts.slice(1);
           const fieldArrayName = fieldArrayParts[0];
           const fieldArrayAtom = fieldArraysAtomFamily(fieldArrayName);
           const fieldArrayInfo = get(fieldArrayAtom);
-          lodashSet(values, fieldArrayName, []);
-          lodashSet(extraInfos, fieldArrayName, []);
+          setPathInObj(values, fieldArrayName, []);
+          setPathInObj(extraInfos, fieldArrayName, []);
           for (let i = 0; i < fieldArrayInfo.rowIds.length; i++) {
             const rowId = fieldArrayInfo.rowIds[i];
             let fieldValues: any = {};
@@ -153,12 +151,12 @@ export const fieldsAtomSelectorFamily = selectorFamily<
               if (fieldId) {
                 const fieldAtom = fieldsAtomFamily(fieldId);
                 const fieldData = get(fieldAtom);
-                lodashSet(fieldValues, field, fieldData.data);
-                lodashSet(extraInfoValues, field, fieldData.extraInfo);
+                setPathInObj(fieldValues, field, fieldData.data);
+                setPathInObj(extraInfoValues, field, fieldData.extraInfo);
               }
             }
-            lodashGet(values, fieldArrayName).push(fieldValues);
-            lodashGet(extraInfos, fieldArrayName).push(extraInfoValues);
+            getPathInObj(values, fieldArrayName).push(fieldValues);
+            getPathInObj(extraInfos, fieldArrayName).push(extraInfoValues);
           }
         }
       }
@@ -226,11 +224,11 @@ function FormValuesObserver() {
         const newFormValues = produce(values, draftValues => {
           for (const fieldArrPathRemove of fieldArrayPathsToRemove) {
             if (fieldArrPathRemove.fieldArrayPath) {
-              lodashGet(
+              getPathInObj(
                 draftValues.values,
                 fieldArrPathRemove.fieldArrayPath
               )?.splice?.(fieldArrPathRemove.index, 1);
-              lodashGet(
+              getPathInObj(
                 draftValues.extraInfos,
                 fieldArrPathRemove.fieldArrayPath
               )?.splice?.(fieldArrPathRemove.index, 1);
@@ -242,11 +240,7 @@ function FormValuesObserver() {
             );
             if (atomLoadable.state === 'hasValue') {
               const atomValue = atomLoadable.contents;
-              if (
-                atomValue?.data !== undefined &&
-                atomValue?.data !== null &&
-                atomValue?.data !== ''
-              ) {
+              // if (atomValue?.data !== undefined) {
                 const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
                 if (fieldName) {
                   const fieldArrayParts = getFieldArrayParts(fieldName);
@@ -259,30 +253,30 @@ function FormValuesObserver() {
                         fieldArrayParts.rowId
                       );
                       const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-                      lodashSet(
+                      setPathInObj(
                         draftValues.values,
                         fieldPathInValues,
-                        clone(atomLoadable.contents.data)
+                        cloneDeep(atomLoadable.contents.data)
                       );
-                      lodashSet(
+                      setPathInObj(
                         draftValues.extraInfos,
                         fieldPathInValues,
-                        clone(atomLoadable.contents.extraInfo)
+                        cloneDeep(atomLoadable.contents.extraInfo)
                       );
                     }
                   } else {
-                    lodashSet(
+                    setPathInObj(
                       draftValues.values,
                       fieldName,
-                      clone(atomLoadable.contents.data)
+                      cloneDeep(atomLoadable.contents.data)
                     );
-                    lodashSet(
+                    setPathInObj(
                       draftValues.extraInfos,
                       fieldName,
-                      clone(atomLoadable.contents.extraInfo)
+                      cloneDeep(atomLoadable.contents.extraInfo)
                     );
                   }
-                }
+                // }
               } else {
                 // TODO: Delete from final data
               }
@@ -346,10 +340,9 @@ export function useField(props: IFieldProps) {
         const fieldArrayParts = getFieldArrayParts(name);
         //TODO: Add field array atoms depending on initial values
         if (!fieldArrayParts) {
-          const initialValue = lodashGet(initialValues.values, name);
-          // DEVNOTE: It is being set as null in the end to avoid this function running again in case initialValue and defaultValue both are missing.
+          const initialValue = getPathInObj(initialValues.values, name);
           set(fieldsAtomFamily(name), {
-            data: initialValue ?? defaultValue ?? null,
+            data: initialValue ?? defaultValue ?? undefined,
             error: undefined,
             validate,
             initVer: initialValues.version,
@@ -438,8 +431,8 @@ export function useWatch(props: IWatchParams) {
   const selector = fieldsAtomSelectorFamily([name]);
   const { values, extraInfos } = useRecoilValue(selector);
   return {
-    value: values ? lodashGet(values, name) : defaultValue,
-    extraInfo: lodashGet(extraInfos, name),
+    value: values ? getPathInObj(values, name) : defaultValue,
+    extraInfo: getPathInObj(extraInfos, name),
   };
 }
 
@@ -453,7 +446,7 @@ export function useMultipleWatch(props: IMultipleWatchParams) {
 export function useIsDirty() {
   const { values: formValues } = useRecoilValue(formValuesAtom);
   const { values: initialValues } = useRecoilValue(formInitialValuesAtom);
-  return !lodashIsEqual(initialValues, formValues);
+  return !isDeepEqual(initialValues, formValues);
 }
 
 export function useFormValues() {
@@ -572,7 +565,7 @@ export function useFieldArray(props: IFieldArrayProps) {
             if (fieldId) {
               set(fieldsAtomFamily(fieldId), currValue =>
                 produce(currValue, draft => {
-                  draft.data = lodashGet(fieldRow, fieldName);
+                  draft.data = getPathInObj(fieldRow, fieldName);
                 })
               );
             }
@@ -621,7 +614,7 @@ export function useFieldArray(props: IFieldArrayProps) {
                 fieldsAtomFamily(fieldId)
               );
               if (fieldLoadable.state === 'hasValue') {
-                lodashSet(
+                setPathInObj(
                   result[index],
                   fieldArrayFieldName,
                   fieldLoadable.contents?.data
@@ -661,7 +654,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               fieldsAtomFamily(fieldId)
             );
             if (fieldLoadable.state === 'hasValue') {
-              lodashSet(result[index], fieldName, fieldLoadable.contents?.data);
+              setPathInObj(result[index], fieldName, fieldLoadable.contents?.data);
             }
           }
         }
@@ -688,7 +681,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         });
         if (row) {
           for (const fieldName of fieldNames) {
-            const rowVal = lodashGet(row, fieldName);
+            const rowVal = getPathInObj(row, fieldName);
             if (rowVal !== undefined && rowVal !== null) {
               const fieldNameInArr = getIdForArrayField(
                 name,
@@ -786,7 +779,7 @@ export function useFieldArray(props: IFieldArrayProps) {
       const initialValues = snapshot.getLoadable(formInitialValuesAtom)
         .contents as InitialValues;
       if (initialValues.values) {
-        const initialValue = lodashGet(initialValues.values, name);
+        const initialValue = getPathInObj(initialValues.values, name);
         if (initialValue?.length) {
           let rowIds: number[] = [];
           for (let i = 0; i < initialValue.length; i++) {
@@ -807,7 +800,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               if (fieldAtomName) {
                 set(fieldsAtomFamily(fieldAtomName), value =>
                   Object.assign({}, value, {
-                    data: lodashGet(obj, fieldName),
+                    data: getPathInObj(obj, fieldName),
                     initVer: initialValues.version,
                   } as Partial<IFieldAtomValue>)
                 );
@@ -929,17 +922,17 @@ function getFormValues(snapshot: Snapshot) {
           );
           if (rowIndex >= 0) {
             const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-            lodashSet(values, fieldPathInValues, clone(formFieldData.data));
-            lodashSet(
+            setPathInObj(values, fieldPathInValues, cloneDeep(formFieldData.data));
+            setPathInObj(
               extraInfos,
               fieldPathInValues,
-              clone(formFieldData.extraInfo)
+              cloneDeep(formFieldData.extraInfo)
             );
           }
         }
       } else {
-        lodashSet(values, fieldName, clone(formFieldData.data));
-        lodashSet(extraInfos, fieldName, clone(formFieldData.extraInfo));
+        setPathInObj(values, fieldName, cloneDeep(formFieldData.data));
+        setPathInObj(extraInfos, fieldName, cloneDeep(formFieldData.extraInfo));
       }
     }
     formFieldAtomsIt = atoms.next();
@@ -1082,7 +1075,7 @@ export function useForm(props: IFormProps) {
                       fieldsAtomFamily(fieldId)
                     );
                     if (fieldLoadable.state === 'hasValue') {
-                      lodashSet(
+                      setPathInObj(
                         result[index],
                         fieldArrayFieldName,
                         fieldLoadable.contents?.data

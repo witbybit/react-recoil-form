@@ -30,7 +30,7 @@ export function InputField(props: InputFieldProps) {
             field.setFieldValue(evt.target.value);
           }
         }}
-        value={field.fieldValue ?? ''}
+        value={field.fieldValue}
         onBlur={field.onBlur}
       />
     </div>
@@ -97,7 +97,7 @@ export function WatchField(props: WatchFieldProps) {
   return (
     <div>
       <label htmlFor={props.name}>{props.name}</label>
-      <input id={props.name} type="text" disabled value={value} />;
+      <input id={props.name} type="text" disabled value={value} />
     </div>
   );
 }
