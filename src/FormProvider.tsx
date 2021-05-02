@@ -172,7 +172,6 @@ export const fieldsAtomSelectorFamily = selectorFamily<
 });
 
 function FormValuesObserver() {
-  // TODO: Capture overall errors here
   const setFormValues = useSetRecoilState(formValuesAtom);
 
   useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
@@ -183,129 +182,6 @@ function FormValuesObserver() {
       }
       return newValues;
     });
-    // DEVNOTE: The approach below will be more efficient since it only deals with modified atoms.
-    // However since there were some minor differences between the values here and the final values on submit,
-    // we are temporarily using the simple solution of going through all atoms via getFormValues().
-    // const modifiedAtoms = (snapshot as any).getNodes_UNSTABLE({
-    //   isModified: true,
-    // });
-    // const formFieldAtoms: any[] = [];
-    // let modifiedAtomIt = modifiedAtoms.next();
-    // const fieldArrayPathsToRemove: {
-    //   index: number;
-    //   fieldArrayPath: string | null;
-    // }[] = [];
-    // while (modifiedAtomIt && !modifiedAtomIt.done) {
-    //   const modifiedAtom = modifiedAtomIt.value;
-    //   const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
-    //   const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(
-    //     modifiedAtom.key
-    //   );
-    //   if (fieldName) {
-    //     formFieldAtoms.push(modifiedAtom);
-    //   } else if (fieldArrayName) {
-    //     const newFieldArrayAtom = snapshot.getLoadable<IFieldArrayAtomValue>(
-    //       modifiedAtom
-    //     );
-    //     const prevFieldArrayAtom = previousSnapshot.getLoadable<
-    //       IFieldArrayAtomValue
-    //     >(modifiedAtom);
-    //     if (
-    //       prevFieldArrayAtom.state === 'hasValue' &&
-    //       newFieldArrayAtom.state === 'hasValue'
-    //     ) {
-    //       const prevRowIds = prevFieldArrayAtom.contents?.rowIds ?? [];
-    //       const newRowIds = newFieldArrayAtom.contents?.rowIds ?? [];
-    //       const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(
-    //         modifiedAtom.key
-    //       );
-    //       if (prevRowIds.length > newRowIds.length) {
-    //         let prevRowIndex = -1;
-    //         for (const prevRowId of prevRowIds) {
-    //           prevRowIndex++;
-    //           if (newRowIds.indexOf(prevRowId) === -1) {
-    //             fieldArrayPathsToRemove.push({
-    //               fieldArrayPath: fieldArrayName,
-    //               index: prevRowIndex,
-    //             });
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    //   modifiedAtomIt = modifiedAtoms.next();
-    // }
-    // if (formFieldAtoms.length || fieldArrayPathsToRemove.length) {
-    //   setFormValues(values => {
-    //     const newFormValues = produce(values, draftValues => {
-    //       for (const fieldArrPathRemove of fieldArrayPathsToRemove) {
-    //         if (fieldArrPathRemove.fieldArrayPath) {
-    //           getPathInObj(
-    //             draftValues.values,
-    //             fieldArrPathRemove.fieldArrayPath
-    //           )?.splice?.(fieldArrPathRemove.index, 1);
-    //           getPathInObj(
-    //             draftValues.extraInfos,
-    //             fieldArrPathRemove.fieldArrayPath
-    //           )?.splice?.(fieldArrPathRemove.index, 1);
-    //         }
-    //       }
-    //       for (const modifiedAtom of formFieldAtoms) {
-    //         const atomLoadable = snapshot.getLoadable<IFieldAtomValue>(
-    //           modifiedAtom
-    //         );
-    //         if (atomLoadable.state === 'hasValue') {
-    //           // const atomValue = atomLoadable.contents;
-    //           // if (atomValue?.data !== undefined) {
-    //           const fieldName = getNameFromAtomFamilyKey(modifiedAtom.key);
-    //           if (fieldName) {
-    //             const fieldArrayParts = getFieldArrayParts(fieldName);
-    //             if (fieldArrayParts) {
-    //               const fieldArrayLoadable = snapshot.getLoadable<
-    //                 IFieldArrayAtomValue
-    //               >(fieldArraysAtomFamily(fieldArrayParts.fieldArrayName));
-    //               if (fieldArrayLoadable.state === 'hasValue') {
-    //                 const rowIndex = fieldArrayLoadable.contents.rowIds.indexOf(
-    //                   fieldArrayParts.rowId
-    //                 );
-    //                 const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-    //                 if (atomLoadable.contents.data !== undefined) {
-    //                   setPathInObj(
-    //                     draftValues.values,
-    //                     fieldPathInValues,
-    //                     cloneDeep(atomLoadable.contents.data)
-    //                   );
-    //                 }
-    //                 if (atomLoadable.contents.extraInfo !== undefined) {
-    //                   setPathInObj(
-    //                     draftValues.extraInfos,
-    //                     fieldPathInValues,
-    //                     cloneDeep(atomLoadable.contents.extraInfo)
-    //                   );
-    //                 }
-    //               }
-    //             } else {
-    //               setPathInObj(
-    //                 draftValues.values,
-    //                 fieldName,
-    //                 cloneDeep(atomLoadable.contents.data)
-    //               );
-    //               setPathInObj(
-    //                 draftValues.extraInfos,
-    //                 fieldName,
-    //                 cloneDeep(atomLoadable.contents.extraInfo)
-    //               );
-    //             }
-    //             // }
-    //           } else {
-    //             // TODO: Delete from final data
-    //           }
-    //         }
-    //       }
-    //     });
-    //     return newFormValues;
-    //   });
-    // }
   });
   return null;
 }
@@ -911,9 +787,7 @@ export function useFieldArray(props: IFieldArrayProps) {
 }
 
 interface IFormProps {
-  submitForm?: (values: any, extraInfos?: any) => any;
-  // DEVNOTE: Make onSubmit mandatory after submitForm is removed from usage
-  onSubmit?: (values: any, extraInfos?: any) => any;
+  onSubmit: (values: any, extraInfos?: any) => any;
   onError?: (errors?: IFieldError[] | null, formErrors?: any[] | null) => any;
   initialValues?: any;
   /**
@@ -991,15 +865,7 @@ function getFormValues(snapshot: Snapshot) {
 }
 
 export function useForm(props: IFormProps) {
-  // DEVNOTE: submitForm is deprecated
-  const {
-    submitForm,
-    initialValues,
-    onError,
-    onSubmit,
-    skipUnregister,
-    validate,
-  } = props;
+  const { initialValues, onError, onSubmit, skipUnregister, validate } = props;
   const [formState, setFormState] = useState<{ isSubmitting: boolean }>({
     isSubmitting: false,
   });
@@ -1171,17 +1037,18 @@ export function useForm(props: IFormProps) {
         return;
       }
       setFormState({ isSubmitting: true });
-      const res = submitForm
-        ? submitForm(values, extraInfos)
-        : onSubmit?.(values, extraInfos);
+      const res = onSubmit?.(values, extraInfos);
       if (res && res.then) {
         return res
           .then(() => {
-            // DEVNOTE: Not resetting here and instead relying on the form component to be unmounted for reset
-            // handleReset()
+            // Make initial values same as final values in order to set isDirty as false after submit
+            updateInitialValues(values);
           })
-          .catch(() => {
-            // console.warn(`Warning: An unhandled error was caught from submitForm()`, reason)
+          .catch((err: any) => {
+            console.warn(
+              `Warning: An unhandled error was caught from onSubmit()`,
+              err
+            );
           })
           .finally(() => {
             setFormState({ isSubmitting: false });
@@ -1190,18 +1057,11 @@ export function useForm(props: IFormProps) {
         // DEVNOTE: Not resetting here and instead relying on the form component to be unmounted for reset
         // handleReset()
         setFormState({ isSubmitting: false });
+        updateInitialValues(values);
       }
       return res;
     },
-    [
-      submitForm,
-      getValues,
-      getExtraInfos,
-      validateAllFields,
-      onSubmit,
-      onError,
-      validate,
-    ]
+    [getValues, getExtraInfos, validateAllFields, onSubmit, onError, validate]
   );
 
   return {
