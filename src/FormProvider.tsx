@@ -115,7 +115,7 @@ export const formValuesAtom = atom<FinalValues>({
 
 export const formInitialValuesAtom = atom<InitialValues>({
   key: gan('FormInitialValues'),
-  default: { values: {}, version: 0 },
+  default: { values: {}, version: 0, skipUnregister: undefined },
 });
 
 export const fieldArraysAtomFamily = atomFamily<IFieldArrayAtomValue, string>({
@@ -270,7 +270,7 @@ export function useField(props: IFieldProps) {
         reset(fieldsAtomFamily(name));
       }
     },
-    [skipUnregister, name]
+    [skipUnregister, name, initialValues]
   );
 
   useEffect(() => {
@@ -745,7 +745,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         }
       }
     },
-    [skipUnregister]
+    [skipUnregister, initialValues]
   );
 
   useEffect(() => {
@@ -915,15 +915,15 @@ export function useForm(props: IFormProps) {
         return { values, version: init.version + 1, skipUnregister };
       });
     },
-    [setFormInitialValues]
+    [setFormInitialValues, handleReset]
   );
 
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
-    if (initialValues && !initValuesVer.current) {
+    if (!initValuesVer.current) {
       updateInitialValues(initialValues ?? {}, skipUnregister);
     }
-  }, [initialValues, updateInitialValues, skipUnregister]);
+  }, [updateInitialValues, skipUnregister, initialValues]);
 
   const getValues = useRecoilCallback(
     ({ snapshot }) => () => {
@@ -1061,7 +1061,15 @@ export function useForm(props: IFormProps) {
       }
       return res;
     },
-    [getValues, getExtraInfos, validateAllFields, onSubmit, onError, validate]
+    [
+      getValues,
+      getExtraInfos,
+      validateAllFields,
+      onSubmit,
+      onError,
+      validate,
+      updateInitialValues,
+    ]
   );
 
   return {
