@@ -53,9 +53,9 @@ function isResettableAtom(name: string) {
 // abc.sdsdsd/123/sdd.def.deded
 // Break it using / as the delimiter. Last part is the field name
 // ASSUMPTION: / can't used by user in field name
-export interface IFieldAtomValue {
-  data?: any;
-  extraInfo?: any;
+export interface IFieldAtomValue<D = any, E = any> {
+  data?: D;
+  extraInfo?: E;
   error?: string | null;
   validate?: (data: any, otherParams?: any) => string | undefined | null;
   touched?: boolean;
@@ -195,10 +195,10 @@ interface IMultipleWatchParams {
   names: string[];
 }
 
-export interface IFieldProps {
+export interface IFieldProps<D> {
   name: string;
-  defaultValue?: any;
-  validate?: (value: any, otherParams?: any) => string | undefined | null;
+  defaultValue?: D;
+  validate?: (value: D, otherParams?: any) => string | undefined | null;
   /**
    * Useful for referencing other fields in validation
    * */
@@ -217,9 +217,9 @@ interface IFieldArrayProps {
 }
 
 // TODO: Check if useField should be rendered again when same params are passed again
-export function useField(props: IFieldProps) {
+export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const { name, validate, defaultValue, depFields, skipUnregister } = props;
-  const [atomValue, setAtomValue] = useRecoilState<IFieldAtomValue>(
+  const [atomValue, setAtomValue] = useRecoilState<IFieldAtomValue<D, E>>(
     fieldsAtomFamily(name)
   );
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
@@ -298,11 +298,11 @@ export function useField(props: IFieldProps) {
     fieldValue,
     extraInfo,
     setFieldValue: useCallback(
-      (data: any, extraInfo?: any) => {
+      (data: D, extraInfo?: E) => {
         setAtomValue(val =>
           produce(val, draft => {
-            draft.data = data;
-            draft.extraInfo = extraInfo;
+            draft.data = data as any;
+            draft.extraInfo = extraInfo as any;
             draft.error = validate ? validate(data, otherParams) : undefined;
           })
         );
@@ -904,15 +904,10 @@ export function useForm(props: IFormProps) {
     (values, skipUnregister?) => {
       handleReset();
       initValuesVer.current = initValuesVer.current + 1;
-      setFormInitialValues(init => {
-        if (skipUnregister === undefined) {
-          return {
-            values,
-            version: init.version + 1,
-            skipUnregister: init.skipUnregister,
-          };
-        }
-        return { values, version: init.version + 1, skipUnregister };
+      setFormInitialValues({
+        values,
+        version: initValuesVer.current,
+        skipUnregister,
       });
     },
     [setFormInitialValues, handleReset]
@@ -935,6 +930,97 @@ export function useForm(props: IFormProps) {
   const getExtraInfos = useRecoilCallback(
     ({ snapshot }) => () => {
       return getFormValues(snapshot).extraInfos;
+    },
+    []
+  );
+
+  const getFieldArrayValue = useRecoilCallback(
+    ({ snapshot }) => (fieldArrayName: string) => {
+      const fieldArrayLoadable = snapshot.getLoadable(
+        fieldArraysAtomFamily(fieldArrayName)
+      );
+      const result: any[] = [];
+      if (fieldArrayLoadable.state === 'hasValue') {
+        const fieldArrayData = fieldArrayLoadable.contents;
+        for (let i = 0; i < fieldArrayData.rowIds.length; i++) {
+          result.push({});
+          const rowId = fieldArrayData.rowIds[i];
+          for (let j = 0; j < fieldArrayData.fieldNames.length; j++) {
+            const fieldArrayFieldName = fieldArrayData.fieldNames[j];
+            const fieldId = getIdForArrayField(
+              fieldArrayName,
+              rowId,
+              fieldArrayFieldName
+            );
+            if (fieldId) {
+              const fieldLoadable = snapshot.getLoadable(
+                fieldsAtomFamily(fieldId)
+              );
+              if (fieldLoadable.state === 'hasValue') {
+                setPathInObj(
+                  result[i],
+                  fieldArrayFieldName,
+                  fieldLoadable.contents?.data
+                );
+              }
+            }
+          }
+        }
+      }
+      return result;
+    },
+    []
+  );
+
+  const validateFields = useRecoilCallback(
+    ({ snapshot, set }) => (fieldNames?: string[]) => {
+      const values = getValues();
+      const errors: IFieldError[] = [];
+      if (fieldNames?.length) {
+        for (const fieldName of fieldNames) {
+          const fieldAtom = fieldsAtomFamily(fieldName);
+          const fieldArrayAtom = fieldArraysAtomFamily(fieldName);
+          const fieldLoadable = snapshot.getLoadable(fieldAtom);
+          const fieldArrayLoadable = snapshot.getLoadable(fieldArrayAtom);
+          if (fieldLoadable.state === 'hasValue') {
+            const formFieldData = fieldLoadable.contents;
+            const errorMsg = formFieldData.validate?.(
+              formFieldData.data,
+              values
+            );
+            if (errorMsg) {
+              errors.push({ fieldName, error: errorMsg, type: 'field' });
+            }
+            set(fieldAtom, val =>
+              Object.assign({}, val, { error: errorMsg, touched: true })
+            );
+          } else if (fieldArrayLoadable.state === 'hasValue') {
+            const atomLoadable = snapshot.getLoadable(fieldArrayAtom);
+            if (atomLoadable.state === 'hasValue') {
+              const fieldArrayData = atomLoadable.contents;
+              const result = getFieldArrayValue(fieldName);
+              const errorMsg = fieldArrayData.validate?.(result, values);
+              if (errorMsg) {
+                errors.push({
+                  fieldName,
+                  error: errorMsg,
+                  type: 'field-array',
+                });
+              }
+              const fieldNamesInArr: string[] = [];
+              for (const rowId of fieldArrayData.rowIds) {
+                for (const fName of fieldArrayData.fieldNames) {
+                  fieldNamesInArr.push(
+                    getIdForArrayField(fieldName, rowId, fName)
+                  );
+                }
+              }
+              errors.push(...validateFields(fieldNamesInArr));
+            }
+          }
+        }
+      }
+      return errors;
     },
     []
   );
@@ -967,44 +1053,14 @@ export function useForm(props: IFormProps) {
           const atomLoadable = snapshot.getLoadable(atom);
           if (atomLoadable.state === 'hasValue') {
             const fieldArrayData = atomLoadable.contents as IFieldArrayAtomValue;
-            if (fieldArrayData.validate) {
-              const result: any[] = [];
-              for (
-                let index = 0;
-                index < fieldArrayData.rowIds.length;
-                index++
-              ) {
-                const rowId = fieldArrayData.rowIds[index];
-                result.push({});
-                for (let j = 0; j < fieldArrayData.fieldNames.length; j++) {
-                  const fieldArrayFieldName = fieldArrayData.fieldNames[j];
-                  const fieldId = getIdForArrayField(
-                    fieldArrayName,
-                    rowId,
-                    fieldArrayFieldName
-                  );
-                  if (fieldId) {
-                    const fieldLoadable = snapshot.getLoadable(
-                      fieldsAtomFamily(fieldId)
-                    );
-                    if (fieldLoadable.state === 'hasValue') {
-                      setPathInObj(
-                        result[index],
-                        fieldArrayFieldName,
-                        fieldLoadable.contents?.data
-                      );
-                    }
-                  }
-                }
-              }
-              const errorMsg = fieldArrayData.validate?.(result, values);
-              if (errorMsg) {
-                errors.push({
-                  fieldName: fieldArrayName,
-                  error: errorMsg,
-                  type: 'field-array',
-                });
-              }
+            const result = getFieldArrayValue(fieldArrayName);
+            const errorMsg = fieldArrayData.validate?.(result, values);
+            if (errorMsg) {
+              errors.push({
+                fieldName: fieldArrayName,
+                error: errorMsg,
+                type: 'field-array',
+              });
               set(atom, val => Object.assign({}, val, { error: errorMsg }));
             } else if (fieldArrayData.error) {
               set(atom, val => Object.assign({}, val, { error: null }));
@@ -1042,7 +1098,7 @@ export function useForm(props: IFormProps) {
         return res
           .then(() => {
             // Make initial values same as final values in order to set isDirty as false after submit
-            updateInitialValues(values);
+            updateInitialValues(values, skipUnregister);
           })
           .catch((err: any) => {
             console.warn(
@@ -1057,7 +1113,7 @@ export function useForm(props: IFormProps) {
         // DEVNOTE: Not resetting here and instead relying on the form component to be unmounted for reset
         // handleReset()
         setFormState({ isSubmitting: false });
-        updateInitialValues(values);
+        updateInitialValues(values, skipUnregister);
       }
       return res;
     },
@@ -1069,6 +1125,7 @@ export function useForm(props: IFormProps) {
       onError,
       validate,
       updateInitialValues,
+      skipUnregister,
     ]
   );
 
@@ -1077,6 +1134,7 @@ export function useForm(props: IFormProps) {
     formState,
     handleReset,
     resetInitialValues: updateInitialValues,
+    validateFields,
   };
 }
 

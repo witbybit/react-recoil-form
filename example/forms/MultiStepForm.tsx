@@ -4,7 +4,7 @@ import { InputField } from './Fields';
 import { Results } from '../';
 
 function MultiStepForm(props) {
-  const { handleSubmit, resetInitialValues } = useForm({
+  const { handleSubmit, resetInitialValues, validateFields } = useForm({
     skipUnregister: true,
     onSubmit: props.onSubmit,
     onError: props.onError,
@@ -15,9 +15,27 @@ function MultiStepForm(props) {
     <React.Fragment>
       <form onSubmit={handleSubmit} autoComplete="off">
         <div>Step {step}</div>
-        {step === 0 && <InputField name="email" type="text" />}
-        {step === 1 && <InputField name="name" type="text" />}
-        {step === 2 && <InputField name="address" type="text" />}
+        {step === 0 && (
+          <InputField
+            name="email"
+            type="text"
+            validate={value => (!!value ? null : 'Missing value')}
+          />
+        )}
+        {step === 1 && (
+          <InputField
+            name="name"
+            type="text"
+            validate={value => (!!value ? null : 'Missing value')}
+          />
+        )}
+        {step === 2 && (
+          <InputField
+            name="address"
+            type="text"
+            validate={value => (!!value ? null : 'Missing value')}
+          />
+        )}
         <div>
           <button
             type="button"
@@ -33,7 +51,12 @@ function MultiStepForm(props) {
             type="button"
             onClick={() => {
               if (step < 2) {
-                setStep(step + 1);
+                let errorMsgs = validateFields(
+                  step === 0 ? ['email'] : step === 1 ? ['name'] : ['address']
+                );
+                if (!errorMsgs.length) {
+                  setStep(step + 1);
+                }
               }
             }}
           >

@@ -4,10 +4,14 @@ import { useField, useFieldArray, useMultipleWatch } from '../../src';
 interface InputFieldProps {
   type: 'number' | 'text';
   name: string;
+  validate?: (value: any) => string | null;
 }
 
 export function InputField(props: InputFieldProps) {
-  const field = useField(props);
+  const field = useField<string | number>({
+    name: props.name,
+    validate: props.validate,
+  });
   return (
     <div>
       <label htmlFor={props.name}>{props.name}</label>
@@ -28,6 +32,7 @@ export function InputField(props: InputFieldProps) {
         value={field.fieldValue ?? ''}
         onBlur={field.onBlur}
       />
+      {field.error && <div style={{ color: 'red' }}>{field.error}</div>}
     </div>
   );
 }
