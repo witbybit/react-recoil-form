@@ -1,10 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {
-  useFormValues,
-  useIsDirty,
-  withFormProvider,
-} from '../src/FormProvider';
+import { useFormValues, useIsDirty } from '../src/FormProvider';
+import ExtraInfoForm from './forms/FileUploadForm';
 import MultiStepForm from './forms/MultiStepForm';
 import SimpleFieldArray from './forms/SimpleFieldArray';
 import SimpleForm from './forms/SimpleForm';
@@ -26,14 +23,23 @@ const formExamples = [
     title: 'Multi Step Form',
     getComponent: props => <MultiStepForm {...props} />,
   },
+  {
+    id: 'file-extra-info',
+    title: 'File Upload (using extra info)',
+    getComponent: props => <ExtraInfoForm {...props} />,
+  },
 ];
 
 function App() {
   const [formId, setFormId] = React.useState('simple-form');
   const [result, setResult] = React.useState<any>({});
+  const [extraInfo, setExtraInfo] = React.useState<any>({});
 
-  function onSubmit(values) {
+  function onSubmit(values: any, extra: any) {
     setResult(values);
+    setExtraInfo(extra);
+    console.log('values = ', values);
+    console.log('extra info = ', extra);
   }
 
   return (
@@ -56,7 +62,10 @@ function App() {
       <div className="form-panel">
         {formExamples.find(f => f.id === formId)?.getComponent({ onSubmit })}
       </div>
-      <div className="result">{JSON.stringify(result, null, 2)}</div>
+      <div className="result">
+        <div>Values: {JSON.stringify(result, null, 2)}</div>
+        <div>Extra Info: {JSON.stringify(extraInfo, null, 2)}</div>
+      </div>
     </div>
   );
 }

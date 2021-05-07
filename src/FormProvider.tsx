@@ -18,13 +18,7 @@ import {
   useSetRecoilState,
 } from 'recoil';
 import produce from 'immer';
-import {
-  getPathInObj,
-  setPathInObj,
-  isDeepEqual,
-  cloneDeep,
-  isUndefined,
-} from './utils';
+import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
 
 function gan(atomName: string) {
   return `WitForm_${atomName}`;
@@ -831,31 +825,23 @@ function getFormValues(snapshot: Snapshot) {
           if (rowIndex >= 0) {
             const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
             if (!isUndefined(formFieldData.data)) {
-              setPathInObj(
-                values,
-                fieldPathInValues,
-                cloneDeep(formFieldData.data)
-              );
+              setPathInObj(values, fieldPathInValues, formFieldData.data);
             }
             if (!isUndefined(formFieldData.extraInfo)) {
               setPathInObj(
                 extraInfos,
                 fieldPathInValues,
-                cloneDeep(formFieldData.extraInfo)
+                formFieldData.extraInfo
               );
             }
           }
         }
       } else {
         if (!isUndefined(formFieldData.data)) {
-          setPathInObj(values, fieldName, cloneDeep(formFieldData.data));
+          setPathInObj(values, fieldName, formFieldData.data);
         }
         if (!isUndefined(formFieldData.extraInfo)) {
-          setPathInObj(
-            extraInfos,
-            fieldName,
-            cloneDeep(formFieldData.extraInfo)
-          );
+          setPathInObj(extraInfos, fieldName, formFieldData.extraInfo);
         }
       }
     }

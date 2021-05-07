@@ -78,11 +78,16 @@ export function isDeepEqual(obj1: any, obj2: any) {
   return result;
 }
 
-export function cloneDeep(obj: any) {
-  if (!obj) {
-    return obj;
+export function cloneDeep(src: any): any {
+  if (Array.isArray(src)) {
+    return src.map(cloneDeep);
   }
-  return JSON.parse(JSON.stringify(obj));
+  if (typeof src !== 'object') {
+    return src;
+  }
+  return Object.fromEntries(
+    Object.entries(src).map(([key, val]) => [key, cloneDeep(val)])
+  );
 }
 
 export function isUndefined(val: any) {

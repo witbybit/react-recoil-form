@@ -1,10 +1,47 @@
 import * as React from 'react';
 import { useField, useFieldArray, useMultipleWatch } from '../../src';
 
+interface FileFieldProps {
+  name: string;
+}
+
+interface IFileType {
+  name: string;
+  type: string;
+}
+
 interface InputFieldProps {
   type: 'number' | 'text';
   name: string;
   validate?: (value: any) => string | null;
+}
+
+export function FileField(props: FileFieldProps) {
+  const field = useField<IFileType | null>({
+    name: props.name,
+    defaultValue: null,
+  });
+  return (
+    <div>
+      <input
+        type="file"
+        onChange={async evt => {
+          const file = evt.currentTarget.files?.[0];
+          if (file) {
+            field.setFieldValue(
+              {
+                name: file.name,
+                type: file.type,
+              },
+              { file }
+            );
+          } else {
+            field.setFieldValue(null);
+          }
+        }}
+      />
+    </div>
+  );
 }
 
 export function InputField(props: InputFieldProps) {
