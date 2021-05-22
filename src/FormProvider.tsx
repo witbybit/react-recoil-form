@@ -782,7 +782,11 @@ export function useFieldArray(props: IFieldArrayProps) {
 
 interface IFormProps {
   onSubmit: (values: any, extraInfos?: any) => any;
-  onError?: (errors?: IFieldError[] | null, formErrors?: any[] | null) => any;
+  onError?: (
+    errors?: IFieldError[] | null,
+    formErrors?: any[] | null,
+    values?: any
+  ) => any;
   initialValues?: any;
   /**
    * Useful in cases where you want to show the errors at the form level rather than field level
@@ -1074,7 +1078,7 @@ export function useForm(props: IFormProps) {
       const formErrors = validate?.(values);
       if (errors.length || formErrors?.length) {
         if (onError) {
-          onError(errors, formErrors);
+          onError(errors, formErrors, values);
         }
         return;
       }
