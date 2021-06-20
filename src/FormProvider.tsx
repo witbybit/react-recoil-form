@@ -17,7 +17,6 @@ import {
   useRecoilValue,
   useSetRecoilState,
 } from 'recoil';
-import produce from 'immer';
 import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
 
 function gan(atomName: string) {
@@ -300,10 +299,10 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     setFieldValue: useCallback(
       (data: D, extraInfo?: E) => {
         setAtomValue(val =>
-          produce(val, draft => {
-            draft.data = data as any;
-            draft.extraInfo = extraInfo as any;
-            draft.error = validate ? validate(data, otherParams) : undefined;
+          Object.assign({}, val, {
+            data,
+            extraInfo,
+            error: validate ? validate(data, otherParams) : undefined,
           })
         );
       },
@@ -424,20 +423,23 @@ export function useFieldArray(props: IFieldArrayProps) {
         // Set the no. of rows as per given values
         let rowIdsToRemove: number[] = [];
         if (oldRowIds.length !== rowsLength) {
-          updatedAtomValue = produce(fieldArrayLoadable.contents, draft => {
-            if (oldRowIds.length > rowsLength) {
-              draft.rowIds = oldRowIds.slice(0, rowsLength);
-              rowIdsToRemove = oldRowIds.slice(rowsLength, oldRowIds.length);
-            } else if (oldRowIds.length < rowsLength) {
-              const noOfElementsToAdd = rowsLength - oldRowIds.length;
-              for (let i = 0; i < noOfElementsToAdd; i++) {
-                const val = Math.floor(Math.random() * 10000);
-                if (draft.rowIds.indexOf(val) === -1) {
-                  draft.rowIds.push(val);
-                }
+          const data = fieldArrayLoadable.contents;
+          let rowIds: number[] = [];
+          if (oldRowIds.length > rowsLength) {
+            rowIds = oldRowIds.slice(0, rowsLength);
+            rowIdsToRemove = oldRowIds.slice(rowsLength, oldRowIds.length);
+          } else if (oldRowIds.length < rowsLength) {
+            const noOfElementsToAdd = rowsLength - oldRowIds.length;
+            for (let i = 0; i < noOfElementsToAdd; i++) {
+              const val = Math.floor(Math.random() * 10000);
+              rowIds = [...data.rowIds];
+              if (rowIds.indexOf(val) === -1) {
+                rowIds.push(val);
               }
             }
-            oldRowIds = draft.rowIds;
+          }
+          updatedAtomValue = Object.assign({}, data, {
+            rowIds,
           });
           set(fieldArraysAtomFamily(name), updatedAtomValue);
           for (const rowId of rowIdsToRemove) {
@@ -460,8 +462,8 @@ export function useFieldArray(props: IFieldArrayProps) {
             );
             if (fieldId) {
               set(fieldsAtomFamily(fieldId), currValue =>
-                produce(currValue, draft => {
-                  draft.data = getPathInObj(fieldRow, fieldName);
+                Object.assign({}, currValue, {
+                  data: getPathInObj(fieldRow, fieldName),
                 })
               );
             }
@@ -574,11 +576,9 @@ export function useFieldArray(props: IFieldArrayProps) {
         newRowId = val;
       }
       if (newRowId !== 0) {
-        set(fieldArraysAtomFamily(name), currVal => {
-          return produce(currVal, draft => {
-            draft.rowIds.push(newRowId);
-          });
-        });
+        set(fieldArraysAtomFamily(name), currVal =>
+          Object.assign({}, currVal, { rowIds: [...currVal.rowIds, newRowId] })
+        );
         if (row) {
           for (const fieldName of fieldNames) {
             const rowVal = getPathInObj(row, fieldName);
@@ -590,8 +590,8 @@ export function useFieldArray(props: IFieldArrayProps) {
               );
               if (fieldNameInArr) {
                 set(fieldsAtomFamily(fieldNameInArr), currVal => {
-                  return produce(currVal, draft => {
-                    draft.data = rowVal;
+                  return Object.assign({}, currVal, {
+                    data: rowVal,
                   });
                 });
               }
@@ -608,20 +608,21 @@ export function useFieldArray(props: IFieldArrayProps) {
       const fieldArrayAtom = snapshot.getLoadable(fieldArraysAtomFamily(name));
       const fieldArrayAtomValue = fieldArrayAtom.contents as IFieldArrayAtomValue;
       let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
-      set(
-        fieldArraysAtomFamily(name),
-        produce(fieldArrayAtomValue, draft => {
-          draft.rowIds?.splice(index, 1);
-        })
-      );
-
       if (rowIdToRemove !== null) {
         for (const fieldName of fieldNames) {
-          const fieldIdArr = getFieldIdInArray(rowIdToRemove, fieldName);
+          const fieldIdArr = getIdForArrayField(name, rowIdToRemove, fieldName);
           if (fieldIdArr) {
             reset(fieldsAtomFamily(fieldIdArr));
           }
         }
+        const rowIds = [...fieldArrayAtomValue.rowIds];
+        rowIds.splice(index, 1);
+        set(
+          fieldArraysAtomFamily(name),
+          Object.assign({}, fieldArrayAtomValue, {
+            rowIds,
+          })
+        );
       }
     },
     []
@@ -634,19 +635,20 @@ export function useFieldArray(props: IFieldArrayProps) {
       );
       if (fieldArrayLoadable.state === 'hasValue') {
         const rowIds = fieldArrayLoadable.contents.rowIds;
-        set(fieldArraysAtomFamily(name), currVal => {
-          return produce(currVal, draft => {
-            for (const rowId of rowIds) {
-              for (const fieldName of fieldNames) {
-                const fieldIdArr = getFieldIdInArray(rowId, fieldName);
-                if (fieldIdArr) {
-                  reset(fieldsAtomFamily(fieldIdArr));
-                }
-              }
-              draft.rowIds?.splice(currVal.rowIds.indexOf(rowId), 1);
+        for (const rowId of rowIds) {
+          for (const fieldName of fieldNames) {
+            const fieldIdArr = getIdForArrayField(name, rowId, fieldName);
+            if (fieldIdArr) {
+              reset(fieldsAtomFamily(fieldIdArr));
             }
-          });
-        });
+          }
+        }
+        set(
+          fieldArraysAtomFamily(name),
+          Object.assign({}, fieldArrayLoadable.contents, {
+            rowIds: [],
+          })
+        );
       }
     },
     []
@@ -659,8 +661,10 @@ export function useFieldArray(props: IFieldArrayProps) {
         rowId = Math.floor(Math.random() * 10000);
       }
       set(fieldArraysAtomFamily(name), currVal => {
-        return produce(currVal, draft => {
-          draft.rowIds?.splice(index + 1, 0, rowId);
+        const rowIds = [...currVal.rowIds];
+        rowIds?.splice(index + 1, 0, rowId);
+        return Object.assign({}, currVal, {
+          rowIds,
         });
       });
       if (value && typeof value === 'object') {
@@ -711,11 +715,11 @@ export function useFieldArray(props: IFieldArrayProps) {
             }
           }
           set(fieldArraysAtomFamily(name), currVal => {
-            return produce(currVal, draft => {
-              draft.rowIds = rowIds;
-              draft.initVer = initialValues.version;
-              draft.validate = validate;
-              draft.fieldNames = fieldNames;
+            return Object.assign({}, currVal, {
+              rowIds,
+              initVer: initialValues.version,
+              validate,
+              fieldNames,
             });
           });
         } else {
