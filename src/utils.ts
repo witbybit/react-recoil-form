@@ -12,7 +12,8 @@ export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
 }
 
 // Note that a[2].b behaves as if a is an array while a.2.b behaves like a is an object.
-export function setPathInObj(obj: any, path: string, value: any) {
+export function setPathInObj(obj: any, path: string, fieldValue: any) {
+  const value = cloneDeep(fieldValue);
   const pathArray = path.matchAll(/([^[.\]])+/g);
   let pathMatch = pathArray.next();
   let key: string = '';
@@ -82,7 +83,8 @@ export function cloneDeep(src: any): any {
   if (Array.isArray(src)) {
     return src.map(cloneDeep);
   }
-  if (typeof src !== 'object') {
+  // DEVNOTE: null needs to be checked separately since typeof null is 'object' in javascript
+  if (src === null || typeof src !== 'object') {
     return src;
   }
   return Object.fromEntries(

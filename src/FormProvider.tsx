@@ -1151,6 +1151,10 @@ interface FormProviderOptions {
    * Use this option only if you already have another <RecoilRoot> in your application
    */
   skipRecoilRoot?: boolean;
+  /**
+   * Skip dirty check and real-time observer for form values. This can result in better performance in some cases.
+   */
+  skipValuesObserver?: boolean;
 }
 
 export function FormProvider(props: {
@@ -1159,7 +1163,7 @@ export function FormProvider(props: {
 }) {
   return (
     <RecoilRoot override={!props.options?.skipRecoilRoot}>
-      <FormValuesObserver />
+      {props.options?.skipValuesObserver ? null : <FormValuesObserver />}
       <RecoilFormProvider {...props} />
     </RecoilRoot>
   );
