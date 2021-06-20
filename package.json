@@ -26,7 +26,7 @@
   "peerDependencies": {
     "immer": ">=7.0.0",
     "react": ">=16",
-    "recoil": ">=0.2.0"
+    "recoil": ">=0.3.0"
   },
   "husky": {
     "hooks": {
@@ -54,13 +54,13 @@
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "^4.10.2",
-    "@types/react": "^16.9.53",
-    "@types/react-dom": "^16.9.8",
+    "@types/react": "^17.0.11",
+    "@types/react-dom": "^17.0.8",
     "husky": "^4.3.0",
     "immer": "^9.0.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "recoil": "^0.2.0",
+    "recoil": "0.3.1",
     "size-limit": "^4.6.2",
     "tsdx": "^0.14.1",
     "tslib": "^2.0.3",

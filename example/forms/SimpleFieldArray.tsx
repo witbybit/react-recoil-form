@@ -7,7 +7,18 @@ function SimpleFieldArray(props) {
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
-    initialValues: { items: [{}] },
+    initialValues: {
+      items: [
+        {
+          item: {
+            name: 'Test 1',
+            desc: 'Desc',
+          },
+          amount: 1000,
+          date: "2019-05-12"
+        },
+      ],
+    },
   });
   return (
     <React.Fragment>
@@ -16,8 +27,10 @@ function SimpleFieldArray(props) {
         <TableField
           name="items"
           fields={[
-            { name: 'item', type: 'text' },
+            { name: 'item.name', type: 'text' },
+            { name: 'item.desc', type: 'text' },
             { name: 'amount', type: 'number' },
+            { name: 'date', type: 'date' },
           ]}
         />
         <WatchField
@@ -29,7 +42,9 @@ function SimpleFieldArray(props) {
         />
         <div>
           <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>Reset</button>
+          <button type="button" onClick={() => resetInitialValues({})}>
+            Reset
+          </button>
         </div>
       </form>
       <Results />

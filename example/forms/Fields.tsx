@@ -11,7 +11,7 @@ interface IFileType {
 }
 
 interface InputFieldProps {
-  type: 'number' | 'text';
+  type: 'number' | 'text' | 'date';
   name: string;
   validate?: (value: any) => string | null;
 }
@@ -99,6 +99,7 @@ export function TableField(props: TableFieldProps) {
                       <InputField
                         name={tableField.getFieldIdInArray(idx, f.name)}
                         type={f.type}
+                        validate={value => !value ? `Value missing` : ''}
                       />
                     </td>
                   ))}

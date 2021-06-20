@@ -167,15 +167,21 @@ export const fieldsAtomSelectorFamily = selectorFamily<
 
 function FormValuesObserver() {
   const setFormValues = useSetRecoilState(formValuesAtom);
+  const [localFormValues, setLocalFormValues] = useState<any>({
+    values: {},
+    extraInfo: {},
+  });
+
+  useEffect(() => {
+    setFormValues(localFormValues);
+  }, [localFormValues]);
 
   useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
-    setFormValues(values => {
-      const newValues = getFormValues(snapshot);
-      if (isDeepEqual(newValues, values)) {
-        return values;
-      }
-      return newValues;
-    });
+    const newValues = getFormValues(snapshot);
+    if (!isDeepEqual(newValues, localFormValues)) {
+      setLocalFormValues(newValues);
+    }
+    return newValues;
   });
   return null;
 }
@@ -598,14 +604,17 @@ export function useFieldArray(props: IFieldArrayProps) {
   );
 
   const remove = useRecoilCallback(
-    ({ set, reset }) => (index: number) => {
-      let rowIdToRemove: number | null = null;
-      set(fieldArraysAtomFamily(name), currVal => {
-        rowIdToRemove = currVal.rowIds[index];
-        return produce(currVal, draft => {
+    ({ set, reset, snapshot }) => (index: number) => {
+      const fieldArrayAtom = snapshot.getLoadable(fieldArraysAtomFamily(name));
+      const fieldArrayAtomValue = fieldArrayAtom.contents as IFieldArrayAtomValue;
+      let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
+      set(
+        fieldArraysAtomFamily(name),
+        produce(fieldArrayAtomValue, draft => {
           draft.rowIds?.splice(index, 1);
-        });
-      });
+        })
+      );
+
       if (rowIdToRemove !== null) {
         for (const fieldName of fieldNames) {
           const fieldIdArr = getFieldIdInArray(rowIdToRemove, fieldName);
@@ -1144,16 +1153,8 @@ export function FormProvider(props: {
   children: any;
   options?: FormProviderOptions;
 }) {
-  if (props.options?.skipRecoilRoot) {
-    return (
-      <Fragment>
-        <FormValuesObserver />
-        <RecoilFormProvider {...props} />
-      </Fragment>
-    );
-  }
   return (
-    <RecoilRoot>
+    <RecoilRoot override={!props.options?.skipRecoilRoot}>
       <FormValuesObserver />
       <RecoilFormProvider {...props} />
     </RecoilRoot>

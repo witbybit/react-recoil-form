@@ -33,13 +33,21 @@ const formExamples = [
 function App() {
   const [formId, setFormId] = React.useState('simple-form');
   const [result, setResult] = React.useState<any>({});
+  const [time, setTime] = React.useState<Date>();
   const [extraInfo, setExtraInfo] = React.useState<any>({});
 
   function onSubmit(values: any, extra: any) {
+    setTime(new Date());
     setResult(values);
     setExtraInfo(extra);
     console.log('values = ', values);
     console.log('extra info = ', extra);
+  }
+
+  function onError(errors: any, formErrors: any, values: any) {
+    console.log('errors', errors);
+    console.log('formErrors', formErrors);
+    console.log('values', values);
   }
 
   return (
@@ -60,11 +68,12 @@ function App() {
         })}
       </div>
       <div className="form-panel">
-        {formExamples.find(f => f.id === formId)?.getComponent({ onSubmit })}
+        {formExamples.find(f => f.id === formId)?.getComponent({ onSubmit, onError })}
       </div>
       <div className="result">
         <div>Values: {JSON.stringify(result, null, 2)}</div>
         <div>Extra Info: {JSON.stringify(extraInfo, null, 2)}</div>
+        <div>{`Time: ${time || ''}`}</div>
       </div>
     </div>
   );
