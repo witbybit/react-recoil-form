@@ -295,6 +295,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
 
   return {
     fieldValue,
+    initValueVer: atomValue.initVer,
     extraInfo,
     setFieldValue: useCallback(
       (data: D, extraInfo?: E) => {
