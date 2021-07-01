@@ -84,7 +84,7 @@ export function cloneDeep(src: any): any {
     return src.map(cloneDeep);
   }
   // DEVNOTE: null needs to be checked separately since typeof null is 'object' in javascript
-  if (src === null || typeof src !== 'object') {
+  if (src === null || typeof src !== 'object' || src instanceof File) {
     return src;
   }
   return Object.fromEntries(
