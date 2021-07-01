@@ -116,7 +116,9 @@ export const fieldArraysAtomFamily = atomFamily<IFieldArrayAtomValue, string>({
   default: { rowIds: [], fieldNames: [], initVer: 0 },
 });
 
-export const fieldsAtomSelectorFamily = selectorFamily<
+// Handles individual fields as well as entire field array column.
+// But it does not take care of individual field inside a field array
+export const mixedFieldsAtomSelectorFamily = selectorFamily<
   { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
   string[]
 >({
@@ -164,6 +166,65 @@ export const fieldsAtomSelectorFamily = selectorFamily<
   },
 });
 
+export const fieldsAtomSelectorFamily = selectorFamily<
+  { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
+  string[]
+>({
+  key: gan('FormFieldsSelector'),
+  get: (fieldNames: string[]) => {
+    return ({ get }) => {
+      if (!fieldNames?.length) {
+        return { values: {}, extraInfos: {} };
+      }
+      const values: any = {};
+      const extraInfos: any = {};
+      for (const fieldName of fieldNames) {
+        const fieldAtomVal = get(fieldsAtomFamily(fieldName));
+        setPathInObj(values, fieldName, fieldAtomVal?.data);
+        setPathInObj(extraInfos, fieldName, fieldAtomVal?.extraInfo);
+      }
+      return { values, extraInfos };
+    };
+  },
+});
+
+export const fieldArrayColAtomSelectorFamily = selectorFamily<
+  { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
+  { fieldArrayName: string; fieldNames: string[] }
+>({
+  key: gan('FormFieldsSelector'),
+  get: ({ fieldArrayName, fieldNames }) => {
+    return ({ get }) => {
+      if (!fieldNames?.length) {
+        return { values: {}, extraInfos: {} };
+      }
+      const values: any = {};
+      const extraInfos: any = {};
+      const fieldArrayAtom = fieldArraysAtomFamily(fieldArrayName);
+      const fieldArrayInfo = get(fieldArrayAtom);
+      setPathInObj(values, fieldArrayName, []);
+      setPathInObj(extraInfos, fieldArrayName, []);
+      for (let i = 0; i < fieldArrayInfo.rowIds.length; i++) {
+        const rowId = fieldArrayInfo.rowIds[i];
+        let fieldValues: any = {};
+        const extraInfoValues: any = {};
+        for (const fieldName of fieldNames) {
+          const fieldId = getIdForArrayField(fieldArrayName, rowId, fieldName);
+          if (fieldId) {
+            const fieldAtom = fieldsAtomFamily(fieldId);
+            const fieldData = get(fieldAtom);
+            setPathInObj(fieldValues, fieldName, fieldData.data);
+            setPathInObj(extraInfoValues, fieldName, fieldData.extraInfo);
+          }
+        }
+        getPathInObj(values, fieldArrayName).push(fieldValues);
+        getPathInObj(extraInfos, fieldArrayName).push(extraInfoValues);
+      }
+      return { values, extraInfos };
+    };
+  },
+});
+
 function FormValuesObserver() {
   const setFormValues = useSetRecoilState(formValuesAtom);
   const [localFormValues, setLocalFormValues] = useState<any>({
@@ -188,6 +249,15 @@ function FormValuesObserver() {
 interface IWatchParams {
   name: string;
   defaultValue?: any;
+}
+
+interface IFieldWatchParams {
+  fieldNames: string[];
+}
+
+interface IFieldArrayColWatchParams {
+  fieldArrayName: string;
+  fieldNames: string[];
 }
 
 interface IMultipleWatchParams {
@@ -225,7 +295,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const initialValues = useRecoilValue(formInitialValuesAtom);
 
   // TODO: Memoize or change the params so that this hook doesn't render everytime useField is rendered
-  const otherParams = fieldsAtomSelectorFamily(depFields ?? []);
+  const otherParams = mixedFieldsAtomSelectorFamily(depFields ?? []);
 
   const initializeFieldValue = useRecoilCallback(
     ({ set, snapshot }) => () => {
@@ -321,10 +391,9 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   };
 }
 
-// TODO: Support field array for useWatch
 export function useWatch(props: IWatchParams) {
   const { name, defaultValue } = props;
-  const selector = fieldsAtomSelectorFamily([name]);
+  const selector = mixedFieldsAtomSelectorFamily([name]);
   const { values, extraInfos } = useRecoilValue(selector);
   return {
     value: values ? getPathInObj(values, name) : defaultValue,
@@ -334,7 +403,24 @@ export function useWatch(props: IWatchParams) {
 
 export function useMultipleWatch(props: IMultipleWatchParams) {
   const { names } = props;
-  const selector = fieldsAtomSelectorFamily(names);
+  const selector = mixedFieldsAtomSelectorFamily(names);
+  const { values, extraInfos } = useRecoilValue(selector);
+  return { values, extraInfos };
+}
+
+export function useFieldWatch(props: IFieldWatchParams) {
+  const { fieldNames } = props;
+  const selector = fieldsAtomSelectorFamily(fieldNames);
+  const { values, extraInfos } = useRecoilValue(selector);
+  return { values, extraInfos };
+}
+
+export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
+  const { fieldArrayName, fieldNames } = props;
+  const selector = fieldArrayColAtomSelectorFamily({
+    fieldArrayName,
+    fieldNames,
+  });
   const { values, extraInfos } = useRecoilValue(selector);
   return { values, extraInfos };
 }
