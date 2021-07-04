@@ -36,6 +36,7 @@ function MultiStepForm(props) {
             validate={value => (!!value ? null : 'Missing value')}
           />
         )}
+        <br/>
         <div>
           <button
             type="button"

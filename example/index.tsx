@@ -71,9 +71,9 @@ function App() {
         {formExamples.find(f => f.id === formId)?.getComponent({ onSubmit, onError })}
       </div>
       <div className="result">
-        <div>Values: {JSON.stringify(result, null, 2)}</div>
-        <div>Extra Info: {JSON.stringify(extraInfo, null, 2)}</div>
-        <div>{`Time: ${time || ''}`}</div>
+        <div>Submitted values: {JSON.stringify(result, null, 2)}</div><br/>
+        <div>Submitted extra info: {JSON.stringify(extraInfo, null, 2)}</div><br/>
+        <div>{`Submission Time: ${time || ''}`}</div>
       </div>
     </div>
   );
@@ -84,7 +84,9 @@ export function Results() {
   const isDirty = useIsDirty();
   return (
     <React.Fragment>
-      <div>{`values = ${JSON.stringify(values, null, 2)}`}</div>
+      <br/>
+      <div>{`Real time values = ${JSON.stringify(values, null, 2)}`}</div>
+      <br/>
       <div>{`isDirty = ${isDirty}`}</div>
     </React.Fragment>
   );

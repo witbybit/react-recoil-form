@@ -65,6 +65,7 @@ interface IFieldArrayAtomValue {
 
 interface InitialValues {
   values: any;
+  extraInfos: any;
   version: number;
   skipUnregister?: boolean;
 }
@@ -108,7 +109,12 @@ export const formValuesAtom = atom<FinalValues>({
 
 export const formInitialValuesAtom = atom<InitialValues>({
   key: gan('FormInitialValues'),
-  default: { values: {}, version: 0, skipUnregister: undefined },
+  default: {
+    values: {},
+    version: 0,
+    extraInfos: {},
+    skipUnregister: undefined,
+  },
 });
 
 export const fieldArraysAtomFamily = atomFamily<IFieldArrayAtomValue, string>({
@@ -241,7 +247,6 @@ function FormValuesObserver() {
     if (!isDeepEqual(newValues, localFormValues)) {
       setLocalFormValues(newValues);
     }
-    return newValues;
   });
   return null;
 }
@@ -306,9 +311,11 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         //TODO: Add field array atoms depending on initial values
         if (!fieldArrayParts) {
           const initialValue = getPathInObj(initialValues.values, name);
+          const extraInfo = getPathInObj(initialValues.extraInfos, name);
           set(fieldsAtomFamily(name), {
             data: initialValue ?? defaultValue ?? undefined,
             error: undefined,
+            extraInfo,
             validate,
             initVer: initialValues.version,
             touched: false,
@@ -774,6 +781,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         .contents as InitialValues;
       if (initialValues.values) {
         const initialValue = getPathInObj(initialValues.values, name);
+        const extraInfo = getPathInObj(initialValues.extraInfos, name);
         if (initialValue?.length) {
           let rowIds: number[] = [];
           for (let i = 0; i < initialValue.length; i++) {
@@ -785,6 +793,7 @@ export function useFieldArray(props: IFieldArrayProps) {
           }
           for (let j = 0; j < initialValue.length; j++) {
             const obj = initialValue[j];
+            const extraInfoObj = extraInfo?.[j];
             for (const fieldName of fieldNames) {
               const fieldAtomName = getIdForArrayField(
                 name,
@@ -795,6 +804,9 @@ export function useFieldArray(props: IFieldArrayProps) {
                 set(fieldsAtomFamily(fieldAtomName), value =>
                   Object.assign({}, value, {
                     data: getPathInObj(obj, fieldName),
+                    extraInfo: extraInfoObj
+                      ? getPathInObj(extraInfoObj, fieldName)
+                      : undefined,
                     initVer: initialValues.version,
                   } as Partial<IFieldAtomValue>)
                 );
@@ -959,7 +971,6 @@ export function useForm(props: IFormProps) {
   const [formState, setFormState] = useState<{ isSubmitting: boolean }>({
     isSubmitting: false,
   });
-  const setFormInitialValues = useSetRecoilState(formInitialValuesAtom);
   const initValuesVer = useRef(0);
 
   const handleReset = useRecoilCallback(
@@ -990,17 +1001,19 @@ export function useForm(props: IFormProps) {
     };
   }, [handleReset]);
 
-  const updateInitialValues = useCallback(
-    (values, skipUnregister?) => {
-      handleReset();
+  const updateInitialValues = useRecoilCallback(
+    ({ set }) => (values: any, skipUnregister?: boolean, extraInfos?: any) => {
+      // handleReset();
       initValuesVer.current = initValuesVer.current + 1;
-      setFormInitialValues({
+      set(formInitialValuesAtom, {
         values,
+        extraInfos: extraInfos || {},
         version: initValuesVer.current,
         skipUnregister,
       });
+      set(formValuesAtom, { values, extraInfos });
     },
-    [setFormInitialValues, handleReset]
+    [handleReset]
   );
 
   useEffect(() => {
@@ -1188,7 +1201,7 @@ export function useForm(props: IFormProps) {
         return res
           .then(() => {
             // Make initial values same as final values in order to set isDirty as false after submit
-            updateInitialValues(values, skipUnregister);
+            updateInitialValues(values, skipUnregister, extraInfos);
           })
           .catch((err: any) => {
             console.warn(

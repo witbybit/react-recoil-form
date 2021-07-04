@@ -12,6 +12,7 @@ function SimpleForm(props) {
     <React.Fragment>
       <form onSubmit={handleSubmit}>
         <InputField name="email" type="text" />
+        <br/>
         <div>
           <button type="submit">Submit</button>
           <button type="button" onClick={() => resetInitialValues({})}>Reset</button>

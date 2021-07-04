@@ -13,6 +13,7 @@ function ExtraInfoForm(props) {
       <form onSubmit={handleSubmit}>
         <InputField name="name" type="text" />
         <FileField name="file" />
+        <br/>
         <div>
           <button type="submit">Submit</button>
           <button type="button" onClick={() => resetInitialValues({})}>

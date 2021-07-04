@@ -40,6 +40,7 @@ function SimpleFieldArray(props) {
             values.items.reduce((acc, val) => acc + (val?.amount ?? 0), 0)
           }
         />
+        <br/>
         <div>
           <button type="submit">Submit</button>
           <button type="button" onClick={() => resetInitialValues({})}>
