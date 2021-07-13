@@ -251,10 +251,10 @@ function FormValuesObserver() {
   return null;
 }
 
-interface IWatchParams {
-  name: string;
-  defaultValue?: any;
-}
+// interface IWatchParams {
+//   name: string;
+//   defaultValue?: any;
+// }
 
 interface IFieldWatchParams {
   fieldNames: string[];
@@ -265,9 +265,9 @@ interface IFieldArrayColWatchParams {
   fieldNames: string[];
 }
 
-interface IMultipleWatchParams {
-  names: string[];
-}
+// interface IMultipleWatchParams {
+//   names: string[];
+// }
 
 export interface IFieldProps<D> {
   name: string;
@@ -398,22 +398,22 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   };
 }
 
-export function useWatch(props: IWatchParams) {
-  const { name, defaultValue } = props;
-  const selector = mixedFieldsAtomSelectorFamily([name]);
-  const { values, extraInfos } = useRecoilValue(selector);
-  return {
-    value: values ? getPathInObj(values, name) : defaultValue,
-    extraInfo: getPathInObj(extraInfos, name),
-  };
-}
+// export function useWatch(props: IWatchParams) {
+//   const { name, defaultValue } = props;
+//   const selector = mixedFieldsAtomSelectorFamily([name]);
+//   const { values, extraInfos } = useRecoilValue(selector);
+//   return {
+//     value: values ? getPathInObj(values, name) : defaultValue,
+//     extraInfo: getPathInObj(extraInfos, name),
+//   };
+// }
 
-export function useMultipleWatch(props: IMultipleWatchParams) {
-  const { names } = props;
-  const selector = mixedFieldsAtomSelectorFamily(names);
-  const { values, extraInfos } = useRecoilValue(selector);
-  return { values, extraInfos };
-}
+// export function useMultipleWatch(props: IMultipleWatchParams) {
+//   const { names } = props;
+//   const selector = mixedFieldsAtomSelectorFamily(names);
+//   const { values, extraInfos } = useRecoilValue(selector);
+//   return { values, extraInfos };
+// }
 
 export function useFieldWatch(props: IFieldWatchParams) {
   const { fieldNames } = props;

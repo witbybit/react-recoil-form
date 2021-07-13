@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { useField, useFieldArray, useMultipleWatch } from '../../src';
+import {
+  useField,
+  useFieldArray,
+  useFieldArrayColumnWatch,
+  useFieldWatch,
+} from '../../src';
 
 interface FileFieldProps {
   name: string;
@@ -99,7 +104,7 @@ export function TableField(props: TableFieldProps) {
                       <InputField
                         name={tableField.getFieldIdInArray(idx, f.name)}
                         type={f.type}
-                        validate={value => !value ? `Value missing` : ''}
+                        validate={value => (!value ? `Value missing` : '')}
                       />
                     </td>
                   ))}
@@ -126,13 +131,15 @@ export function TableField(props: TableFieldProps) {
 
 interface WatchFieldProps {
   name: string;
-  names: string[];
+  fieldArrayName: string;
+  colNames: string[];
   calculateFunc?: (values: any) => string;
 }
 
 export function WatchField(props: WatchFieldProps) {
-  const res = useMultipleWatch({
-    names: props.names,
+  const res = useFieldArrayColumnWatch({
+    fieldArrayName: props.fieldArrayName,
+    fieldNames: props.colNames,
   });
   const value = props.calculateFunc
     ? props.calculateFunc(res.values)
