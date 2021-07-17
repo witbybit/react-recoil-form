@@ -272,7 +272,7 @@ interface IFieldArrayColWatchParams {
 export interface IFieldProps<D> {
   name: string;
   defaultValue?: D;
-  validate?: (value: D, otherParams?: any) => string | undefined | null;
+  validate?: (value?: D, otherParams?: any) => string | undefined | null;
   /**
    * Useful for referencing other fields in validation
    * */
@@ -296,11 +296,14 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const [atomValue, setAtomValue] = useRecoilState<IFieldAtomValue<D, E>>(
     fieldsAtomFamily(name)
   );
+  const oldOtherParamsRef = useRef<any>(null);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
   const initialValues = useRecoilValue(formInitialValuesAtom);
 
   // TODO: Memoize or change the params so that this hook doesn't render everytime useField is rendered
-  const otherParams = mixedFieldsAtomSelectorFamily(depFields ?? []);
+  const otherParams = useRecoilValue(
+    mixedFieldsAtomSelectorFamily(depFields ?? [])
+  );
 
   const initializeFieldValue = useRecoilCallback(
     ({ set, snapshot }) => () => {
@@ -369,6 +372,20 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
       resetField();
     };
   }, [resetField]);
+
+  useEffect(() => {
+    if (
+      !oldOtherParamsRef.current ||
+      !isDeepEqual(oldOtherParamsRef.current, otherParams)
+    ) {
+      oldOtherParamsRef.current = otherParams;
+      setAtomValue(val =>
+        Object.assign({}, val, {
+          error: validate ? validate(val.data, otherParams) : undefined,
+        })
+      );
+    }
+  }, [otherParams]);
 
   return {
     fieldValue,

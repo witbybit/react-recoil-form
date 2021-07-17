@@ -18,7 +18,8 @@ interface IFileType {
 interface InputFieldProps {
   type: 'number' | 'text' | 'date';
   name: string;
-  validate?: (value: any) => string | null;
+  validate?: (value: any, otherParams: any) => string | null;
+  depFields?: string[]
 }
 
 export function FileField(props: FileFieldProps) {
@@ -53,6 +54,7 @@ export function InputField(props: InputFieldProps) {
   const field = useField<string | number>({
     name: props.name,
     validate: props.validate,
+    depFields: props.depFields
   });
   return (
     <div>
