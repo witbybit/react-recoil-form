@@ -1,3 +1,5 @@
+import './polyfills';
+
 export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
   const travel = (regexp: RegExp) =>
     String.prototype.split
