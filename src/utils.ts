@@ -1,4 +1,7 @@
-import './polyfills';
+import matchAll from 'string.prototype.matchall';
+
+// polyfill for String.matchAll
+matchAll.shim();
 
 export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
   const travel = (regexp: RegExp) =>
