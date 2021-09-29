@@ -15,11 +15,11 @@
     "url": "https://github.com/witbybit/react-recoil-form"
   },
   "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test --passWithNoTests",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build",
+    "start": "dts watch",
+    "build": "dts build",
+    "test": "dts test --passWithNoTests",
+    "lint": "dts lint",
+    "prepare": "dts build",
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
@@ -29,7 +29,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "tsdx lint"
+      "pre-commit": "dts lint"
     }
   },
   "prettier": {
@@ -56,7 +56,7 @@
     "@types/core-js": "^2.5.5",
     "@types/react": "^17.0.11",
     "@types/react-dom": "^17.0.8",
-    "@weiran.zsd/tsdx": "0.16.2",
+    "dts-cli": "0.17.1",
     "husky": "^4.3.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
