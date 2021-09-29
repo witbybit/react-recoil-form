@@ -1,7 +1,4 @@
-import matchAll from 'string.prototype.matchall';
-
-// polyfill for String.matchAll
-matchAll.shim();
+import 'core-js/features/string/virtual/match-all';
 
 export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
   const travel = (regexp: RegExp) =>
@@ -56,8 +53,8 @@ export function isDeepEqual(obj1: any, obj2: any) {
     return false;
   }
 
-  const keysA = Object.keys(obj1).filter(k => !isUndefined(obj1[k]));
-  const keysB = Object.keys(obj2).filter(k => !isUndefined(obj2[k]));
+  const keysA = Object.keys(obj1).filter((k) => !isUndefined(obj1[k]));
+  const keysB = Object.keys(obj2).filter((k) => !isUndefined(obj2[k]));
 
   if (keysA.length !== keysB.length) {
     return false;
@@ -65,7 +62,7 @@ export function isDeepEqual(obj1: any, obj2: any) {
 
   let result = true;
 
-  keysA.forEach(key => {
+  keysA.forEach((key) => {
     if (!keysB.includes(key)) {
       result = false;
     }

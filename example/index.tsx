@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { useFormValues, useIsDirty } from '../src/FormProvider';
+import { useFormValues, useIsDirty } from '../src';
 import ExtraInfoForm from './forms/FileUploadForm';
 import MultiStepForm from './forms/MultiStepForm';
 import SimpleFieldArray from './forms/SimpleFieldArray';
