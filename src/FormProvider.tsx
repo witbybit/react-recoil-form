@@ -53,8 +53,7 @@ export interface IFieldAtomValue<D = any, E = any> {
   validate?: (data: any, otherParams?: any) => string | undefined | null;
   touched?: boolean;
   initVer: number;
-  fieldArrayName?: string;
-  index?: number;
+  fieldArrayInfo?: { name: string; index: number };
   fieldName: string;
 }
 
@@ -221,39 +220,33 @@ export const fieldArrayColAtomValueSelectorFamily = selectorFamily<
 
 export const fieldAtomSelectorFamily = selectorFamily<
   IFieldAtomValue,
-  { fieldArrayName?: string; index?: number; fieldName: string }
+  { fieldArrayInfo?: { name: string; index: number }; fieldName: string }
 >({
   key: gan('FieldAtomSelector'),
-  get: ({ fieldArrayName, index, fieldName }) => {
+  get: ({ fieldArrayInfo, fieldName }) => {
     return ({ get }) => {
-      if (!fieldArrayName) {
+      if (!fieldArrayInfo) {
         return get(fieldsAtomFamily(fieldName));
       } else {
-        if (index === undefined) {
-          throw new Error('Field index in array must be a number');
-        }
-        const fieldArrayProps = get(fieldArraysAtomFamily(fieldArrayName));
+        const fieldArrayProps = get(fieldArraysAtomFamily(fieldArrayInfo.name));
         const fullFieldName = getIdForArrayField(
-          fieldArrayName,
-          fieldArrayProps.rowIds[index],
+          fieldArrayInfo.name,
+          fieldArrayProps.rowIds[fieldArrayInfo.index],
           fieldName
         );
         return get(fieldsAtomFamily(fullFieldName));
       }
     };
   },
-  set: ({ fieldArrayName, index, fieldName }) => {
+  set: ({ fieldArrayInfo, fieldName }) => {
     return ({ get, set }, newValue) => {
-      if (!fieldArrayName) {
+      if (!fieldArrayInfo) {
         set(fieldsAtomFamily(fieldName), newValue);
       } else {
-        if (index === undefined) {
-          throw new Error('Field index in array must be a number');
-        }
-        const fieldArrayProps = get(fieldArraysAtomFamily(fieldArrayName));
+        const fieldArrayProps = get(fieldArraysAtomFamily(fieldArrayInfo.name));
         const fullFieldName = getIdForArrayField(
-          fieldArrayName,
-          fieldArrayProps.rowIds[index],
+          fieldArrayInfo.name,
+          fieldArrayProps.rowIds[fieldArrayInfo.index],
           fieldName
         );
         set(fieldsAtomFamily(fullFieldName), newValue);
@@ -304,11 +297,7 @@ export interface IFieldProps<D> {
   /**
    * Only required if the field is part of field array
    */
-  fieldArrayName?: string;
-  /**
-   * Only required if the field is part of field array
-   */
-  index?: number;
+  fieldArrayInfo?: { name: string; index: number };
   name: string;
   defaultValue?: D;
   validate?: (value?: D, otherParams?: any) => string | undefined | null;
@@ -332,8 +321,7 @@ interface IFieldArrayProps {
 // TODO: Check if useField should be rendered again when same params are passed again
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const {
-    fieldArrayName,
-    index,
+    fieldArrayInfo,
     name,
     validate,
     defaultValue,
@@ -341,7 +329,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     skipUnregister,
   } = props;
   const [atomValue, setAtomValue] = useRecoilState<IFieldAtomValue<D, E>>(
-    fieldAtomSelectorFamily({ fieldArrayName, index, fieldName: name })
+    fieldAtomSelectorFamily({ fieldArrayInfo, fieldName: name })
   );
   const oldOtherParamsRef = useRef<any>(null);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
@@ -359,7 +347,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           .contents as InitialValues;
         if (initialValues.values) {
           //TODO: Add field array atoms depending on initial values
-          if (!fieldArrayName) {
+          if (!fieldArrayInfo) {
             const initialValue = getPathInObj(initialValues.values, name);
             const extraInfo = getPathInObj(initialValues.extraInfos, name);
             set(fieldAtomSelectorFamily({ fieldName: name }), {
@@ -375,16 +363,14 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
             // Initialize validation function for fields inside field array
             set(
               fieldAtomSelectorFamily({
-                fieldArrayName,
-                index,
+                fieldArrayInfo,
                 fieldName: name,
               }),
               (state) =>
                 Object.assign({}, state, {
                   validate,
                   initVer: initialValues.version,
-                  fieldArrayName,
-                  index,
+                  fieldArrayInfo,
                   fieldName: name,
                 })
             );
@@ -402,7 +388,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         if (
           !skipUnregister &&
           !initialValues.skipUnregister &&
-          !fieldArrayName
+          !fieldArrayInfo
         ) {
           reset(fieldsAtomFamily(name));
         }
@@ -417,8 +403,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
       setAtomValue((val) =>
         Object.assign({}, val, {
           validate,
-          fieldArrayName,
-          index,
+          fieldArrayInfo,
           fieldName: name,
         })
       );
@@ -463,8 +448,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
             data,
             extraInfo,
             error: validate ? validate(data, otherParams) : undefined,
-            fieldArrayName,
-            index,
+            fieldArrayInfo,
             fieldName: name,
           })
         );
@@ -1003,13 +987,13 @@ function getFormValues(snapshot: Snapshot) {
     if (fieldName) {
       const atomLoadable = snapshot.getLoadable(atom);
       const formFieldData = atomLoadable.contents as IFieldAtomValue;
-      if (formFieldData.fieldArrayName) {
+      if (formFieldData.fieldArrayInfo) {
         const fieldArrayLoadable = snapshot.getLoadable<IFieldArrayAtomValue>(
-          fieldArraysAtomFamily(formFieldData.fieldArrayName)
+          fieldArraysAtomFamily(formFieldData.fieldArrayInfo.name)
         );
         if (fieldArrayLoadable.state === 'hasValue') {
-          if ((formFieldData.index ?? -1) >= 0) {
-            const fieldPathInValues = `${formFieldData.fieldArrayName}[${formFieldData.index}].${formFieldData.fieldName}`;
+          if (formFieldData.fieldArrayInfo.index >= 0) {
+            const fieldPathInValues = `${formFieldData.fieldArrayInfo.name}[${formFieldData.fieldArrayInfo.index}].${formFieldData.fieldName}`;
             if (!isUndefined(formFieldData.data)) {
               setPathInObj(values, fieldPathInValues, formFieldData.data);
             }

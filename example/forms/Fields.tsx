@@ -1,10 +1,5 @@
 import * as React from 'react';
-import {
-  useField,
-  useFieldArray,
-  useFieldArrayColumnWatch,
-  useFieldWatch,
-} from '../../src';
+import { useField, useFieldArray, useFieldArrayColumnWatch } from '../../src';
 
 interface FileFieldProps {
   name: string;
@@ -17,8 +12,7 @@ interface IFileType {
 
 interface InputFieldProps {
   type: 'number' | 'text' | 'date';
-  fieldArrayName?: string;
-  index?: number;
+  fieldArrayInfo?: { name: string; index: number };
   name: string;
   validate?: (value: any, otherParams: any) => string | null;
   depFields?: string[];
@@ -33,7 +27,7 @@ export function FileField(props: FileFieldProps) {
     <div>
       <input
         type="file"
-        onChange={async evt => {
+        onChange={async (evt) => {
           const file = evt.currentTarget.files?.[0];
           if (file) {
             field.setFieldValue(
@@ -54,8 +48,7 @@ export function FileField(props: FileFieldProps) {
 
 export function InputField(props: InputFieldProps) {
   const field = useField<string | number>({
-    fieldArrayName: props.fieldArrayName,
-    index: props.index,
+    fieldArrayInfo: props.fieldArrayInfo,
     name: props.name,
     validate: props.validate,
     depFields: props.depFields,
@@ -67,7 +60,7 @@ export function InputField(props: InputFieldProps) {
         id={props.name}
         type={props.type}
         name={props.name}
-        onChange={evt => {
+        onChange={(evt) => {
           if (props.type === 'number') {
             try {
               const val = parseInt(evt.target.value);
@@ -92,7 +85,7 @@ interface TableFieldProps {
 
 export function TableField(props: TableFieldProps) {
   const tableField = useFieldArray({
-    fieldNames: props.fields.map(f => f.name),
+    fieldNames: props.fields.map((f) => f.name),
     name: props.name,
   });
 
@@ -105,14 +98,13 @@ export function TableField(props: TableFieldProps) {
             return (
               <tr key={r}>
                 <React.Fragment>
-                  {props.fields.map(f => (
+                  {props.fields.map((f) => (
                     <td key={f.name}>
                       <InputField
-                        fieldArrayName={props.name}
-                        index={idx}
+                        fieldArrayInfo={{ name: props.name, index: idx }}
                         name={f.name}
                         type={f.type}
-                        validate={value => (!value ? `Value missing` : '')}
+                        validate={(value) => (!value ? `Value missing` : '')}
                       />
                     </td>
                   ))}
