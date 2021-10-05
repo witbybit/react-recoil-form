@@ -16,6 +16,7 @@ export interface IFieldArrayAtomValue extends IAtomValueBase {
 }
 
 export interface InitialValues {
+  formId: string;
   values: any;
   extraInfos: any;
   version: number;
@@ -89,8 +90,12 @@ export type IFieldAtomSelectorInput = {
   ancestors: { name: string; rowId: number }[];
   name: string;
   type: IFieldType;
+  formId: string;
 };
 
-export interface IFieldError extends IFieldAtomSelectorInput {
+export interface IFieldError {
+  ancestors: { name: string; rowId: number }[];
+  name: string;
+  type: IFieldType;
   error: string;
 }

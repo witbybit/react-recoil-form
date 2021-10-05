@@ -23,10 +23,12 @@ import {
   formInitialValuesAtom,
   formValuesAtom,
   getFieldArrayDataAndExtraInfo,
+  getFormId,
   multipleFieldsSelectorFamily,
   resetFieldArrayRow,
   setFieldArrayDataAndExtraInfo,
 } from './atoms';
+import { generateFormId } from './atomUtils';
 import {
   IFieldArrayAtomValue,
   IFieldArrayColWatchParams,
@@ -36,6 +38,7 @@ import {
   IFieldError,
   IFieldProps,
   IFieldWatchParams,
+  InitialValues,
 } from './types';
 import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
 
@@ -50,8 +53,9 @@ function FormValuesObserver() {
     setFormValues(localFormValues);
   }, [localFormValues, setFormValues]);
 
-  useRecoilTransactionObserver_UNSTABLE(() => {
-    const newValues = getFormValues();
+  useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
+    const get = (atom: RecoilValue<any>) => snapshot.getLoadable(atom).contents;
+    const newValues = getFormValues(get);
     if (!isDeepEqual(newValues, localFormValues)) {
       setLocalFormValues(newValues);
     }
@@ -63,16 +67,17 @@ function FormValuesObserver() {
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const { ancestors, name, validate, defaultValue, depFields, skipUnregister } =
     props;
+  const initialValues = useRecoilValue(formInitialValuesAtom);
   const [atomValue, setAtomValue] = useRecoilState(
     fieldAtomFamily({
       ancestors: ancestors ?? [],
       name,
       type: 'field',
+      formId: initialValues.formId,
     }) as RecoilState<IFieldAtomValue<D, E>>
   );
   const oldOtherParamsRef = useRef<any>(null);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
-  const initialValues = useRecoilValue(formInitialValuesAtom);
 
   // TODO: Memoize or change the params so that this hook doesn't render everytime useField is rendered
   const otherParams = useRecoilValue(
@@ -87,6 +92,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           ancestors: ancestors ?? [],
           name,
           type: 'field',
+          formId: initialValues.formId,
         });
         set(fieldAtom, (val) =>
           Object.assign({}, val, {
@@ -115,6 +121,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
                 ancestors,
                 name,
                 type: 'field',
+                formId: initialValues.formId,
               }),
               (state) =>
                 Object.assign({}, state, {
@@ -141,7 +148,12 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           !ancestors?.length
         ) {
           reset(
-            fieldAtomFamily({ name, ancestors: ancestors ?? [], type: 'field' })
+            fieldAtomFamily({
+              name,
+              ancestors: ancestors ?? [],
+              type: 'field',
+              formId: initialValues.formId,
+            })
           );
         }
       },
@@ -236,14 +248,15 @@ export function useFormValues() {
 // TODO: Need to add support for unregister for unmount (has to be a user choice)
 export function useFieldArray(props: IFieldArrayProps) {
   const { name, fieldNames, validate, skipUnregister, ancestors } = props;
+  const initialValues = useRecoilValue(formInitialValuesAtom);
   const fieldArrayProps = useRecoilValue(
     fieldAtomFamily({
       name,
       ancestors: ancestors ?? [],
       type: 'field-array',
+      formId: initialValues.formId,
     }) as RecoilState<IFieldArrayAtomValue>
   );
-  const initialValues = useRecoilValue(formInitialValuesAtom);
 
   // const otherParams = useMultipleWatch({ names: depFields ?? [] })
 
@@ -297,6 +310,7 @@ export function useFieldArray(props: IFieldArrayProps) {
             ancestors: ancestors ?? [],
             name,
             type: 'field-array',
+            formId: initialValues.formId,
           })
         ) as IFieldArrayAtomValue;
         let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
@@ -313,6 +327,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               ancestors: ancestors ?? [],
               name,
               type: 'field-array',
+              formId: initialValues.formId,
             }),
             Object.assign({}, fieldArrayAtomValue, {
               rowIds,
@@ -331,6 +346,7 @@ export function useFieldArray(props: IFieldArrayProps) {
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
+            formId: initialValues.formId,
           })
         ) as IFieldArrayAtomValue;
         const rowIds = fieldArrayAtomValue.rowIds;
@@ -346,6 +362,7 @@ export function useFieldArray(props: IFieldArrayProps) {
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
+            formId: initialValues.formId,
           }),
           Object.assign({}, fieldArrayAtomValue, {
             rowIds: [],
@@ -400,6 +417,7 @@ export function useFieldArray(props: IFieldArrayProps) {
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
+            formId: initialValues.formId,
           }),
           (val) => Object.assign({}, val, { validate, fieldNames })
         );
@@ -427,6 +445,7 @@ export function useFieldArray(props: IFieldArrayProps) {
           ancestors: ancestors ?? [],
           name,
           type: 'field-array',
+          formId: initialValues.formId,
         });
         const value = get(fieldArrayAtom);
         const fieldArrayAtomValue = value as IFieldArrayAtomValue;
@@ -489,11 +508,17 @@ interface IFormProps {
   skipUnregister?: boolean;
 }
 
-function getFormValues() {
+const getFormValues = (get: (val: RecoilValue<any>) => any) => {
   const values: any = {};
   const extraInfos: any = {};
-  const fieldArrays = Object.values(combinedFieldAtomValues.fieldArrays);
-  for (const fieldAtomValue of Object.values(combinedFieldAtomValues.fields)) {
+  const initialValues = get(formInitialValuesAtom) as InitialValues;
+  const formId = initialValues.formId;
+  const fieldArrays = Object.values(
+    combinedFieldAtomValues[formId].fieldArrays
+  );
+  for (const fieldAtomValue of Object.values(
+    combinedFieldAtomValues[formId].fields
+  )) {
     const ancestors = fieldAtomValue.param.ancestors;
     let pathAncestors: { name: string; index: number }[] = [];
     if (ancestors.length) {
@@ -540,7 +565,7 @@ function getFormValues() {
     }
   }
   return { values, extraInfos };
-}
+};
 
 export function useForm(props: IFormProps) {
   const { initialValues, onError, onSubmit, skipUnregister, validate } = props;
@@ -549,43 +574,60 @@ export function useForm(props: IFormProps) {
   });
   const initValuesVer = useRef(0);
 
-  function resetDataAtoms(reset: (val: RecoilState<any>) => void) {
-    for (const field of Object.values(combinedFieldAtomValues.fields)) {
-      reset(fieldAtomFamily(field.param));
+  function resetDataAtoms(
+    reset: (val: RecoilState<any>) => void,
+    get: (val: RecoilValue<any>) => any
+  ) {
+    const formId = getFormId(get);
+    if (formId) {
+      for (const field of Object.values(
+        combinedFieldAtomValues[formId].fields
+      )) {
+        reset(fieldAtomFamily(field.param));
+      }
+      for (const fieldArray of Object.values(
+        combinedFieldAtomValues[formId].fieldArrays
+      )) {
+        reset(fieldAtomFamily(fieldArray.param));
+      }
+      combinedFieldAtomValues[formId].fields = {};
+      combinedFieldAtomValues[formId].fieldArrays = {};
     }
-    for (const fieldArray of Object.values(
-      combinedFieldAtomValues.fieldArrays
-    )) {
-      reset(fieldAtomFamily(fieldArray.param));
-    }
-    combinedFieldAtomValues.fields = {};
-    combinedFieldAtomValues.fieldArrays = {};
   }
 
-  const handleReset = useRecoilCallback(
-    ({ reset }) =>
-      () => {
-        resetDataAtoms(reset);
+  const handleReset = useRecoilTransaction_UNSTABLE(
+    ({ reset, get }) =>
+      (deleteFormId: boolean = false) => {
+        resetDataAtoms(reset, get);
+        if (deleteFormId) {
+          const formId = getFormId(get);
+          delete combinedFieldAtomValues[formId];
+        }
       },
     []
   );
 
   useEffect(() => {
     return () => {
-      // DEVNOTE: Perhaps we only need this if RecoilRoot is outside the form library
-      handleReset();
+      handleReset(true);
     };
   }, [handleReset]);
 
-  const updateInitialValues = useRecoilCallback(
-    ({ set, reset }) =>
-      (values?: any, skipUnregister?: boolean, extraInfos?: any) => {
+  const updateInitialValues = useRecoilTransaction_UNSTABLE(
+    ({ set, reset, get }) =>
+      (
+        values?: any,
+        skipUnregister?: boolean,
+        extraInfos?: any,
+        formId?: string
+      ) => {
         if (!skipUnregister) {
-          resetDataAtoms(reset);
+          resetDataAtoms(reset, get);
         }
         initValuesVer.current = initValuesVer.current + 1;
         set(formInitialValuesAtom, (existingVal) =>
           Object.assign({}, existingVal, {
+            formId: formId ?? existingVal.formId,
             values: values ?? existingVal.values,
             extraInfos: extraInfos ?? existingVal.extraInfos,
             version: initValuesVer.current,
@@ -600,20 +642,33 @@ export function useForm(props: IFormProps) {
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
     if (!initValuesVer.current) {
-      updateInitialValues(initialValues ?? {}, skipUnregister);
+      let formId = generateFormId();
+      while (combinedFieldAtomValues[formId]) {
+        formId = generateFormId();
+      }
+      combinedFieldAtomValues[formId] = { fields: {}, fieldArrays: {} };
+      updateInitialValues(
+        initialValues ?? {},
+        skipUnregister,
+        undefined,
+        formId
+      );
     }
   }, [updateInitialValues, skipUnregister, initialValues]);
 
-  const getValuesAndExtraInfo = () => getFormValues();
+  const getValuesAndExtraInfo = (get: (val: RecoilValue<any>) => any) =>
+    getFormValues(get);
 
-  const getValues = () => getFormValues().values;
+  const getValues = (get: (val: RecoilValue<any>) => any) =>
+    getFormValues(get).values;
 
   const validateFields = useRecoilCallback(
     ({ snapshot, set }) =>
       (fieldNames?: (string | IFieldAtomSelectorInput)[]) => {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
-        const values = getValues();
+        const values = getValues(get);
+        const formId = getFormId(get);
         const errors: IFieldError[] = [];
         if (fieldNames?.length) {
           for (const fieldName of fieldNames) {
@@ -626,6 +681,7 @@ export function useForm(props: IFormProps) {
                 name,
                 type: 'field',
                 ancestors,
+                formId,
               });
               const formFieldData = get(fieldAtom) as IFieldAtomValue;
               const errorMsg = formFieldData.validate?.(
@@ -665,9 +721,10 @@ export function useForm(props: IFormProps) {
       (values: any, extraInfos: any) => {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
+        const formId = getFormId(get);
         const errors: IFieldError[] = [];
         for (const fieldAtomInfo of Object.values(
-          combinedFieldAtomValues.fields
+          combinedFieldAtomValues[formId].fields
         )) {
           const fieldAtom = fieldAtomFamily(fieldAtomInfo.param);
           const formFieldData = get(fieldAtom) as IFieldAtomValue;
@@ -688,7 +745,7 @@ export function useForm(props: IFormProps) {
           }
         }
         for (const fieldArrayAtomInfo of Object.values(
-          combinedFieldAtomValues.fieldArrays
+          combinedFieldAtomValues[formId].fieldArrays
         )) {
           const { errors: fieldArrayErrors } = getFieldArrayDataAndExtraInfo(
             fieldArrayAtomInfo.param,
@@ -708,48 +765,49 @@ export function useForm(props: IFormProps) {
     []
   );
 
-  const handleSubmit = useCallback(
-    (e?: React.FormEvent<HTMLFormElement>) => {
-      if (e && e.preventDefault) {
-        e.preventDefault();
-      }
-      if (e && e.stopPropagation) {
-        e.stopPropagation();
-      }
-      const { values, extraInfos } = getValuesAndExtraInfo();
-      const errors = validateAllFields(values, extraInfos);
-      const formErrors = validate?.(values);
-      if (errors.length || formErrors?.length) {
-        if (onError) {
-          onError(errors, formErrors, values);
+  const handleSubmit = useRecoilCallback(
+    ({ snapshot }) =>
+      (e?: React.FormEvent<HTMLFormElement>) => {
+        if (e && e.preventDefault) {
+          e.preventDefault();
         }
-        return;
-      }
-      setFormState({ isSubmitting: true });
-      const res = onSubmit?.(values, extraInfos);
-      if (res && res.then) {
-        return res
-          .then(() => {
-            // Make initial values same as final values in order to set isDirty as false after submit
-            updateInitialValues(values, skipUnregister, extraInfos);
-          })
-          .catch((err: any) => {
-            console.warn(
-              `Warning: An unhandled error was caught from onSubmit()`,
-              err
-            );
-          })
-          .finally(() => {
-            setFormState({ isSubmitting: false });
-          });
-      } else {
-        // DEVNOTE: Not resetting here and instead relying on the form component to be unmounted for reset
-        // handleReset()
-        setFormState({ isSubmitting: false });
-        updateInitialValues(values, skipUnregister, extraInfos);
-      }
-      return res;
-    },
+        if (e && e.stopPropagation) {
+          e.stopPropagation();
+        }
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        const { values, extraInfos } = getValuesAndExtraInfo(get);
+        const errors = validateAllFields(values, extraInfos);
+        const formErrors = validate?.(values);
+        if (errors.length || formErrors?.length) {
+          if (onError) {
+            onError(errors, formErrors, values);
+          }
+          return;
+        }
+        setFormState({ isSubmitting: true });
+        const res = onSubmit?.(values, extraInfos);
+        if (res && res.then) {
+          return res
+            .then(() => {
+              // Make initial values same as final values in order to set isDirty as false after submit
+              updateInitialValues(values, skipUnregister, extraInfos);
+            })
+            .catch((err: any) => {
+              console.warn(
+                `Warning: An unhandled error was caught from onSubmit()`,
+                err
+              );
+            })
+            .finally(() => {
+              setFormState({ isSubmitting: false });
+            });
+        } else {
+          setFormState({ isSubmitting: false });
+          updateInitialValues(values, skipUnregister, extraInfos);
+        }
+        return res;
+      },
     [
       validateAllFields,
       onSubmit,
