@@ -97,9 +97,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         set(fieldAtom, (val) =>
           Object.assign({}, val, {
             validate,
-            ancestors,
-            name,
-          })
+          } as Partial<IFieldAtomValue>)
         );
         if (initialValues.values) {
           //TODO: Add field array atoms depending on initial values
@@ -127,9 +125,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
                 Object.assign({}, state, {
                   validate,
                   initVer: initialValues.version,
-                  ancestors,
-                  name,
-                })
+                } as Partial<IFieldAtomValue>)
             );
           }
         }
@@ -431,11 +427,13 @@ export function useFieldArray(props: IFieldArrayProps) {
               validate,
               fieldNames,
               initVer: initialValues.version,
+              skipUnregister,
             } as Partial<IFieldArrayAtomValue>)
         );
-        if (initialValue?.length) {
+        // Values are only initialized for fields or field arrays without ancestors
+        if (!ancestors?.length && initialValue?.length) {
           setFieldArrayDataAndExtraInfo(
-            { name, ancestors: ancestors ?? [] },
+            { name, ancestors: [] },
             {
               get,
               set,
@@ -447,12 +445,27 @@ export function useFieldArray(props: IFieldArrayProps) {
           );
         }
       },
-    [name, validate, fieldNames, ancestors]
+    [name, validate, fieldNames, ancestors, skipUnregister]
   );
 
   const resetFieldArray = useRecoilTransaction_UNSTABLE(
     ({ reset, get }) =>
       (name: string) => {
+        const topAncestor = ancestors?.[0];
+        if (topAncestor) {
+          const topAncestorVal = get(
+            fieldAtomFamily({
+              ancestors: [],
+              name: topAncestor.name,
+              type: 'field-array',
+              formId: initialValues.formId,
+            })
+          ) as IFieldArrayAtomValue;
+          if (topAncestorVal.skipUnregister) {
+            // If top field array has skip unregister, then all field arrays/fields below should follow
+            return;
+          }
+        }
         const fieldArrayAtom = fieldAtomFamily({
           ancestors: ancestors ?? [],
           name,
@@ -550,17 +563,18 @@ const getFormValues = (get: (val: RecoilValue<any>) => any) => {
           }
           return false;
         });
-        if (!fieldArray) {
-          throw new Error(
-            `Field array '${ancestors[i].name}' in the ancestors of field ${fieldAtomValue.param.name} was not found`
-          );
+        if (fieldArray) {
+          pathAncestors.push({
+            name: fieldArray.param.name,
+            index: fieldArray.atomValue.rowIds.findIndex(
+              (rid) => ancestors[i].rowId === rid
+            ),
+          });
+        } else {
+          // throw new Error(
+          //   `Field array '${ancestors[i].name}' in the ancestors of field ${fieldAtomValue.param.name} was not found`
+          // );
         }
-        pathAncestors.push({
-          name: fieldArray.param.name,
-          index: fieldArray.atomValue.rowIds.findIndex(
-            (rid) => ancestors[i].rowId === rid
-          ),
-        });
       }
     }
     const data = fieldAtomValue.atomValue.data;

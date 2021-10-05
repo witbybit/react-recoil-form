@@ -13,6 +13,7 @@ export interface IFieldAtomValue<D = any, E = any> extends IAtomValueBase {
 export interface IFieldArrayAtomValue extends IAtomValueBase {
   rowIds: number[];
   fieldNames: (string | { name: string; type: IFieldType })[];
+  skipUnregister?: boolean;
 }
 
 export interface InitialValues {
@@ -34,7 +35,7 @@ export interface IFieldWatchParams {
 
 export interface IFieldArrayColWatchParams {
   fieldArrayName: string;
-  fieldNames: string[];
+  fieldNames?: string[];
 }
 
 export type IFieldType = 'field' | 'field-array';
@@ -80,6 +81,10 @@ export interface IFieldArrayProps {
 export interface IFieldAtomInput {
   ancestors: IAncestorInput[];
   name: string;
+}
+
+export interface IGetFieldArrayInput extends IFieldAtomInput {
+  fieldNames?: string[];
 }
 
 export interface IFieldArrayRowInput extends IFieldAtomInput {

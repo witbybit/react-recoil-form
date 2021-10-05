@@ -15,6 +15,7 @@ import {
   IFieldAtomSelectorInput,
   IFieldAtomValue,
   IFieldError,
+  IGetFieldArrayInput,
   InitialValues,
 } from './types';
 import { getPathInObj, setPathInObj } from './utils';
@@ -180,7 +181,7 @@ interface IValidationParams {
 }
 
 export function getFieldArrayDataAndExtraInfo(
-  params: IFieldAtomInput,
+  params: IGetFieldArrayInput,
   get: (
     atom: RecoilValue<IFieldArrayAtomValue | IFieldAtomValue>
   ) => IFieldArrayAtomValue | IFieldAtomValue,
@@ -218,12 +219,17 @@ export function getFieldArrayDataAndExtraInfo(
       : [{ name, rowId }];
     data.push({});
     extraInfo.push({});
-    for (const field of fieldArrayAtomValue.fieldNames) {
+    const filteredFieldNames = fieldArrayAtomValue.fieldNames.filter(
+      (f) =>
+        !params.fieldNames ||
+        params.fieldNames.indexOf(typeof f === 'string' ? f : f.name) !== -1
+    );
+    for (const field of filteredFieldNames) {
       if (typeof field === 'string') {
         const fieldAtom = fieldAtomFamily({
           name: field,
           type: 'field',
-          ancestors: params.ancestors,
+          ancestors: fieldAncestors,
           formId,
         });
         const fieldValue = get(fieldAtom) as IFieldAtomValue;
@@ -249,7 +255,7 @@ export function getFieldArrayDataAndExtraInfo(
           const fieldAtom = fieldAtomFamily({
             name: field.name,
             type: 'field',
-            ancestors: params.ancestors,
+            ancestors: fieldAncestors,
             formId,
           });
           const fieldValue = get(fieldAtom) as IFieldAtomValue;
@@ -355,9 +361,9 @@ export function setFieldArrayDataAndExtraInfo(
   const oldRowIds = fieldArrayAtomValue.rowIds;
   let dataRowsLength = dataArr.length;
   let rowIdsToRemove: number[] = [];
-  let rowIds: number[] = [];
+  let rowIds: number[] = [...oldRowIds];
   let startIndex = 0;
-  if ((!mode || mode.type === 'set') && oldRowIds.length !== dataRowsLength) {
+  if (!mode || mode.type === 'set') {
     if (oldRowIds.length > dataRowsLength) {
       rowIds = oldRowIds.slice(0, dataRowsLength);
       rowIdsToRemove = oldRowIds.slice(dataRowsLength, oldRowIds.length);
@@ -481,49 +487,21 @@ export const fieldArrayColAtomValueSelectorFamily = selectorFamily<
   {
     ancestors?: { name: string; rowId: number }[];
     fieldArrayName: string;
-    fieldNames: string[];
+    fieldNames?: string[];
   }
 >({
   key: gan('FieldArrayColAtomValueSelector'),
   get: ({ ancestors, fieldArrayName, fieldNames }) => {
     return ({ get }) => {
-      if (!fieldNames?.length) {
-        return { values: {}, extraInfos: {} };
-      }
-      const formId = getFormId(get);
-      const values: any = {};
-      const extraInfos: any = {};
-      const fieldArrayAtom = fieldAtomFamily({
-        ancestors: ancestors ?? [],
-        name: fieldArrayName,
-        type: 'field-array',
-        formId,
-      });
-      const fieldArrayInfo = get(fieldArrayAtom) as IFieldArrayAtomValue;
-      setPathInObj(values, fieldArrayName, []);
-      setPathInObj(extraInfos, fieldArrayName, []);
-      for (let i = 0; i < fieldArrayInfo.rowIds.length; i++) {
-        let fieldValues: any = {};
-        const extraInfoValues: any = {};
-        const rowId = fieldArrayInfo.rowIds[i];
-        const fieldAncestors = ancestors?.length
-          ? [...ancestors, { name: fieldArrayName, rowId }]
-          : [{ name: fieldArrayName, rowId }];
-        for (const fieldName of fieldNames) {
-          const fieldAtom = fieldAtomFamily({
-            ancestors: fieldAncestors,
-            name: fieldName,
-            type: 'field',
-            formId,
-          });
-          const fieldData = get(fieldAtom) as IFieldAtomValue;
-          setPathInObj(fieldValues, fieldName, fieldData.data);
-          setPathInObj(extraInfoValues, fieldName, fieldData.extraInfo);
-        }
-        getPathInObj(values, fieldArrayName).push(fieldValues);
-        getPathInObj(extraInfos, fieldArrayName).push(extraInfoValues);
-      }
-      return { values, extraInfos };
+      const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
+        {
+          ancestors: ancestors ?? [],
+          name: fieldArrayName,
+          fieldNames,
+        },
+        get
+      );
+      return { values: data, extraInfos: extraInfo };
     };
   },
 });
