@@ -291,9 +291,11 @@ export function useFieldArray(props: IFieldArrayProps) {
     [name, fieldArrayProps]
   );
 
-  const getFieldArrayValue = useRecoilTransaction_UNSTABLE(
-    ({ get }) =>
+  const getFieldArrayValue = useRecoilCallback(
+    ({ snapshot }) =>
       () => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
         return getFieldArrayDataAndExtraInfo(
           { name, ancestors: ancestors ?? [] },
           get
