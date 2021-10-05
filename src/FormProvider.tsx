@@ -48,7 +48,7 @@ function FormValuesObserver() {
 
   useEffect(() => {
     setFormValues(localFormValues);
-  }, [localFormValues]);
+  }, [localFormValues, setFormValues]);
 
   useRecoilTransactionObserver_UNSTABLE(() => {
     const newValues = getFormValues();
@@ -172,7 +172,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         })
       );
     }
-  }, [otherParams, validate]);
+  }, [otherParams, validate, setAtomValue]);
 
   return {
     fieldValue,
@@ -190,7 +190,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           })
         );
       },
-      [otherParams, validate]
+      [otherParams, validate, ancestors, name, setAtomValue]
     ),
     error: touched ? error : undefined,
     onBlur: useCallback(
