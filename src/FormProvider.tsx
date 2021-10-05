@@ -303,7 +303,7 @@ export function useFieldArray(props: IFieldArrayProps) {
           get
         ).data;
       },
-    [fieldArrayProps]
+    []
   );
 
   const remove = useRecoilTransaction_UNSTABLE(
@@ -426,7 +426,12 @@ export function useFieldArray(props: IFieldArrayProps) {
             type: 'field-array',
             formId: initialValues.formId,
           }),
-          (val) => Object.assign({}, val, { validate, fieldNames })
+          (val) =>
+            Object.assign({}, val, {
+              validate,
+              fieldNames,
+              initVer: initialValues.version,
+            } as Partial<IFieldArrayAtomValue>)
         );
         if (initialValue?.length) {
           setFieldArrayDataAndExtraInfo(
@@ -520,12 +525,13 @@ const getFormValues = (get: (val: RecoilValue<any>) => any) => {
   const extraInfos: any = {};
   const initialValues = get(formInitialValuesAtom) as InitialValues;
   const formId = initialValues.formId;
-  const fieldArrays = Object.values(
-    combinedFieldAtomValues[formId].fieldArrays
-  );
-  for (const fieldAtomValue of Object.values(
-    combinedFieldAtomValues[formId].fields
-  )) {
+  const fieldArrays = combinedFieldAtomValues[formId]
+    ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
+    : [];
+  const fields = combinedFieldAtomValues[formId]
+    ? Object.values(combinedFieldAtomValues[formId].fields)
+    : [];
+  for (const fieldAtomValue of fields) {
     const ancestors = fieldAtomValue.param.ancestors;
     let pathAncestors: { name: string; index: number }[] = [];
     if (ancestors.length) {
