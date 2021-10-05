@@ -14,8 +14,20 @@ export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
 }
 
 // Note that a[2].b behaves as if a is an array while a.2.b behaves like a is an object.
-export function setPathInObj(obj: any, path: string, fieldValue: any) {
+export function setPathInObj(
+  obj: any,
+  path: string,
+  fieldValue: any,
+  ancestors?: { name: string; index: number }[]
+) {
   const value = cloneDeep(fieldValue);
+  if (ancestors?.length) {
+    let prefix = '';
+    for (const ancestor of ancestors) {
+      prefix = prefix + `${ancestor.name}[${ancestor.index}]`;
+    }
+    path = prefix + path;
+  }
   const pathArray = path.matchAll(/([^[.\]])+/g);
   let pathMatch = pathArray.next();
   let key: string = '';

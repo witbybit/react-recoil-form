@@ -44,7 +44,7 @@ function SimpleFieldArray(props) {
         <br/>
         <div>
           <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>
+          <button type="button" onClick={() => resetInitialValues()}>
             Reset
           </button>
         </div>

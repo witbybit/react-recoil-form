@@ -7,6 +7,7 @@ function SimpleForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
+    initialValues: {name: "Abc"}
   });
   return (
     <React.Fragment>
@@ -18,7 +19,7 @@ function SimpleForm(props) {
         <br/>
         <div>
           <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>Reset</button>
+          <button type="button" onClick={() => resetInitialValues()}>Reset</button>
         </div>
       </form>
       <Results />

@@ -12,7 +12,7 @@ interface IFileType {
 
 interface InputFieldProps {
   type: 'number' | 'text' | 'date';
-  fieldArrayInfo?: { name: string; index: number };
+  ancestors?: { name: string; rowId: number }[];
   name: string;
   validate?: (value: any, otherParams: any) => string | null;
   depFields?: string[];
@@ -48,7 +48,7 @@ export function FileField(props: FileFieldProps) {
 
 export function InputField(props: InputFieldProps) {
   const field = useField<string | number>({
-    fieldArrayInfo: props.fieldArrayInfo,
+    ancestors: props.ancestors,
     name: props.name,
     validate: props.validate,
     depFields: props.depFields,
@@ -101,7 +101,7 @@ export function TableField(props: TableFieldProps) {
                   {props.fields.map((f) => (
                     <td key={f.name}>
                       <InputField
-                        fieldArrayInfo={{ name: props.name, index: idx }}
+                        ancestors={[{ name: props.name, rowId: r }]}
                         name={f.name}
                         type={f.type}
                         validate={(value) => (!value ? `Value missing` : '')}

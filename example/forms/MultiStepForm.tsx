@@ -64,7 +64,7 @@ function MultiStepForm(props) {
             Next
           </button>
           <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>
+          <button type="button" onClick={() => resetInitialValues()}>
             Reset
           </button>
         </div>
