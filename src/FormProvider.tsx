@@ -153,7 +153,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           );
         }
       },
-    [skipUnregister, name, initialValues]
+    [skipUnregister, name, initialValues, ancestors]
   );
 
   useEffect(() => {
@@ -553,8 +553,8 @@ const getFormValues = (get: (val: RecoilValue<any>) => any) => {
           if (f.param.name === ancestors[i].name) {
             for (let j = 0; j < i; j++) {
               if (
-                fieldArray?.param.ancestors[j].name !== ancestors[j].name ||
-                fieldArray?.param.ancestors[j].rowId !== ancestors[j].rowId
+                f.param.ancestors[j].name !== ancestors[j].name ||
+                f.param.ancestors[j].rowId !== ancestors[j].rowId
               ) {
                 return false;
               }
@@ -571,9 +571,9 @@ const getFormValues = (get: (val: RecoilValue<any>) => any) => {
             ),
           });
         } else {
-          // throw new Error(
-          //   `Field array '${ancestors[i].name}' in the ancestors of field ${fieldAtomValue.param.name} was not found`
-          // );
+          throw new Error(
+            `Field array '${ancestors[i].name}' in the ancestors of field ${fieldAtomValue.param.name} was not found`
+          );
         }
       }
     }
@@ -641,16 +641,16 @@ export function useForm(props: IFormProps) {
   }, [handleReset]);
 
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
-    ({ set, reset, get }) =>
+    ({ set }) =>
       (
         values?: any,
         skipUnregister?: boolean,
         extraInfos?: any,
         formId?: string
       ) => {
-        if (!skipUnregister) {
-          resetDataAtoms(reset, get);
-        }
+        // if (!skipUnregister) {
+        //   resetDataAtoms(reset, get);
+        // }
         initValuesVer.current = initValuesVer.current + 1;
         set(formInitialValuesAtom, (existingVal) =>
           Object.assign({}, existingVal, {

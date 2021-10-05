@@ -24,7 +24,7 @@ export function setPathInObj(
   if (ancestors?.length) {
     let prefix = '';
     for (const ancestor of ancestors) {
-      prefix = prefix + `${ancestor.name}[${ancestor.index}]`;
+      prefix = prefix + `${ancestor.name}[${ancestor.index}].`;
     }
     path = prefix + path;
   }

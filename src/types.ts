@@ -3,6 +3,7 @@ export interface IAtomValueBase {
   touched?: boolean;
   validate?: (data: any, otherParams?: any) => string | undefined | null;
   error?: string | null;
+  type: IFieldType;
 }
 
 export interface IFieldAtomValue<D = any, E = any> extends IAtomValueBase {

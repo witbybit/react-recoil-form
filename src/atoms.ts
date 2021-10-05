@@ -61,19 +61,15 @@ export const fieldAtomFamily = atomFamily<
   default: (param) => {
     if (param.type === 'field') {
       return {
-        type: 'field',
         initVer: 0,
-        name: param.name,
-        ancestors: param.ancestors,
+        type: 'field',
       } as IFieldAtomValue;
     }
     return {
-      type: 'field-array',
       fieldNames: [],
-      ancestors: param.ancestors,
       initVer: 0,
-      name: param.name,
       rowIds: [],
+      type: 'field-array',
     } as IFieldArrayAtomValue;
   },
   effects_UNSTABLE: (param) => [
@@ -359,7 +355,7 @@ export function setFieldArrayDataAndExtraInfo(
     );
   }
   const oldRowIds = fieldArrayAtomValue.rowIds;
-  let dataRowsLength = dataArr.length;
+  let dataRowsLength = dataArr?.length ?? 0;
   let rowIdsToRemove: number[] = [];
   let rowIds: number[] = [...oldRowIds];
   let startIndex = 0;
