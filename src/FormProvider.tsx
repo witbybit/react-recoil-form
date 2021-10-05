@@ -111,6 +111,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
               validate,
               initVer: initialValues.version,
               touched: false,
+              type: 'field',
             });
           } else {
             // Initialize validation function for fields inside field array
