@@ -275,9 +275,11 @@ export function useFieldArray(props: IFieldArrayProps) {
       }
   );
 
-  const validateData = useRecoilTransaction_UNSTABLE(
-    ({ get, set }) =>
+  const validateData = useRecoilCallback(
+    ({ snapshot, set }) =>
       () => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
         const { errors } = getFieldArrayDataAndExtraInfo(
           { name, ancestors: ancestors ?? [] },
           get,
@@ -307,12 +309,13 @@ export function useFieldArray(props: IFieldArrayProps) {
   const remove = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       (index: number) => {
+        const formId = getFormId(get);
         const fieldArrayAtomValue = get(
           fieldAtomFamily({
             ancestors: ancestors ?? [],
             name,
             type: 'field-array',
-            formId: initialValues.formId,
+            formId,
           })
         ) as IFieldArrayAtomValue;
         let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
@@ -322,33 +325,35 @@ export function useFieldArray(props: IFieldArrayProps) {
             get,
             reset
           );
-          const rowIds = [...fieldArrayAtomValue.rowIds];
-          rowIds.splice(index, 1);
+          const tempRowIds = [...fieldArrayAtomValue.rowIds];
+          tempRowIds.splice(index, 1);
           set(
             fieldAtomFamily({
               ancestors: ancestors ?? [],
               name,
               type: 'field-array',
-              formId: initialValues.formId,
+              formId,
             }),
-            Object.assign({}, fieldArrayAtomValue, {
-              rowIds,
-            })
+            (existingValue) =>
+              Object.assign({}, existingValue, {
+                rowIds: tempRowIds,
+              })
           );
         }
       },
-    []
+    [name, ancestors]
   );
 
   const removeAll = useRecoilTransaction_UNSTABLE(
     ({ get, set, reset }) =>
       () => {
+        const formId = getFormId(get);
         const fieldArrayAtomValue = get(
           fieldAtomFamily({
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
-            formId: initialValues.formId,
+            formId,
           })
         ) as IFieldArrayAtomValue;
         const rowIds = fieldArrayAtomValue.rowIds;
@@ -364,14 +369,14 @@ export function useFieldArray(props: IFieldArrayProps) {
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
-            formId: initialValues.formId,
+            formId,
           }),
           Object.assign({}, fieldArrayAtomValue, {
             rowIds: [],
           })
         );
       },
-    []
+    [name, ancestors]
   );
 
   const append = useRecoilTransaction_UNSTABLE(
