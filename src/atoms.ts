@@ -198,7 +198,8 @@ export function getFieldArrayDataAndExtraInfo(
   const extraInfo: any = [];
   const errors: IFieldError[] = [];
   const fieldArrayAtom = fieldAtomFamily({
-    ...params,
+    ancestors: params.ancestors,
+    name: params.name,
     type: 'field-array',
     formId,
   });

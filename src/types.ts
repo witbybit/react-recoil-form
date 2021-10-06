@@ -31,10 +31,14 @@ export interface FinalValues {
 }
 
 export interface IFieldWatchParams {
-  fieldNames: string[];
+  fieldNames: (
+    | string
+    | { ancestors?: { name: string; rowId: number }[]; name: string }
+  )[];
 }
 
 export interface IFieldArrayColWatchParams {
+  ancestors?: { name: string; rowId: number }[];
   fieldArrayName: string;
   fieldNames?: string[];
 }

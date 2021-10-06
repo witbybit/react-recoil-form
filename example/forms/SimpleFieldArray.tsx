@@ -38,7 +38,7 @@ function SimpleFieldArray(props) {
           fieldArrayName='items'
           colNames={['amount']}
           calculateFunc={values =>
-            values.items?.reduce((acc, val) => acc + (val?.amount ?? 0), 0)
+            values.reduce((acc, val) => acc + (val?.amount ?? 0), 0)
           }
         />
         <br/>

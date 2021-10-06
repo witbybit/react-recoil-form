@@ -194,9 +194,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
             data,
             extraInfo,
             error: validate ? validate(data, otherParams) : undefined,
-            ancestors,
-            name,
-          })
+          } as Partial<IFieldAtomValue>)
         );
       },
       [otherParams, validate, ancestors, name, setAtomValue]
