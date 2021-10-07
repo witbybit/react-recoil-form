@@ -28,7 +28,7 @@ import {
   resetFieldArrayRow,
   setFieldArrayDataAndExtraInfo,
 } from './atoms';
-import { generateFormId, snapshotToGet } from './atomUtils';
+import { generateFormId, getFullObjectPath, snapshotToGet } from './atomUtils';
 import {
   IFieldArrayAtomValue,
   IFieldArrayColWatchParams,
@@ -98,6 +98,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         set(fieldAtom, (val) =>
           Object.assign({}, val, {
             validate,
+            initVer: initialValues.version,
           } as Partial<IFieldAtomValue>)
         );
         if (initialValues.values) {
@@ -114,21 +115,6 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
               touched: false,
               type: 'field',
             });
-          } else {
-            // Initialize validation function for fields inside field array
-            set(
-              fieldAtomFamily({
-                ancestors,
-                name,
-                type: 'field',
-                formId: initialValues.formId,
-              }),
-              (state) =>
-                Object.assign({}, state, {
-                  validate,
-                  initVer: initialValues.version,
-                } as Partial<IFieldAtomValue>)
-            );
           }
         }
       },
@@ -161,6 +147,12 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   useEffect(() => {
     if (atomValue.initVer < initialValues.version) {
       initializeFieldValue();
+    } else if (validate && !atomValue.validate) {
+      setAtomValue((val) =>
+        Object.assign({}, val, {
+          validate,
+        } as Partial<IFieldAtomValue>)
+      );
     }
   }, [initializeFieldValue, initialValues.version, atomValue.initVer]);
 
@@ -373,14 +365,13 @@ export function useFieldArray(props: IFieldArrayProps) {
   const getFieldArrayValue = useRecoilCallback(
     ({ snapshot }) =>
       () => {
-        const get = (atom: RecoilValue<any>) =>
-          snapshot.getLoadable(atom).contents;
+        const get = snapshotToGet(snapshot);
         return getFieldArrayDataAndExtraInfo(
           { name, ancestors: ancestors ?? [] },
           get
         ).data;
       },
-    []
+    [name, ancestors]
   );
 
   const remove = useRecoilTransaction_UNSTABLE(
@@ -494,9 +485,18 @@ export function useFieldArray(props: IFieldArrayProps) {
     ({ set, get, reset }) =>
       () => {
         const initialValues = get(formInitialValuesAtom);
+        const objPath = getFullObjectPath(
+          {
+            name,
+            ancestors: ancestors ?? [],
+            type: 'field-array',
+            formId: initialValues.formId,
+          },
+          get
+        );
         const initialValue =
-          getPathInObj(initialValues.values, name) ?? defaultValue;
-        const extraInfo = getPathInObj(initialValues.extraInfos, name);
+          getPathInObj(initialValues.values, objPath) ?? defaultValue;
+        const extraInfo = getPathInObj(initialValues.extraInfos, objPath);
         set(
           fieldAtomFamily({
             name,
@@ -515,7 +515,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         // Values are only initialized for fields or field arrays without ancestors
         if (!ancestors?.length && initialValue?.length) {
           setFieldArrayDataAndExtraInfo(
-            { name, ancestors: [] },
+            { name, ancestors: ancestors ?? [] },
             {
               get,
               set,
@@ -523,6 +523,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               dataArr: initialValue,
               extraInfoArr: extraInfo,
               initialValuesVersion: initialValues.version,
+              skipRecursion: true,
             }
           );
         }

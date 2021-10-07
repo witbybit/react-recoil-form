@@ -9,6 +9,7 @@ import { gan, getNewRowId } from './atomUtils';
 import {
   FinalValues,
   IAncestorInput,
+  IChildFieldInfo,
   IFieldArrayAtomValue,
   IFieldArrayRowInput,
   IFieldAtomInput,
@@ -335,15 +336,26 @@ interface ISetFieldArrayParams {
   extraInfoArr?: any[];
   // initialValuesVer is only needed if fields are being initialized
   initialValuesVersion?: number;
+  // Needed only for initializing the field array
+  fieldNames?: IChildFieldInfo[];
   mode?: { type: 'set' } | { type: 'insert'; rowIndex?: number };
+  skipRecursion?: boolean;
 }
 
 export function setFieldArrayDataAndExtraInfo(
   params: IFieldAtomInput,
   setParams: ISetFieldArrayParams
 ) {
-  let { get, set, reset, dataArr, extraInfoArr, initialValuesVersion, mode } =
-    setParams;
+  let {
+    get,
+    set,
+    reset,
+    dataArr,
+    extraInfoArr,
+    initialValuesVersion,
+    mode,
+    fieldNames: childFields,
+  } = setParams;
   if (!mode) {
     mode = { type: 'set' };
   }
@@ -353,7 +365,9 @@ export function setFieldArrayDataAndExtraInfo(
     formId,
     type: 'field-array',
   };
-  const fieldArrayAtomValue = get(fieldAtomFamily(fieldArrayParams));
+  const fieldArrayAtomValue = get(
+    fieldAtomFamily(fieldArrayParams)
+  ) as IFieldArrayAtomValue;
   if (fieldArrayAtomValue.type !== 'field-array') {
     throw new Error(
       'Please check the field type in field array since this seems to be a regular field but has been specified as a nested field array'
@@ -378,6 +392,10 @@ export function setFieldArrayDataAndExtraInfo(
       Object.assign({}, val, {
         rowIds,
         initVer: initialValuesVersion ?? val.initVer,
+        fieldNames:
+          initialValuesVersion && childFields?.length
+            ? childFields
+            : (val as IFieldArrayAtomValue).fieldNames,
       } as Partial<IFieldArrayAtomValue>)
     );
     for (const rowId of rowIdsToRemove) {
@@ -456,7 +474,7 @@ export function setFieldArrayDataAndExtraInfo(
                 } as Partial<IFieldAtomValue>);
               }
             );
-          } else {
+          } else if (field.type === 'field-array') {
             const data = getPathInObj(fieldValues, field.name);
             const extraInfo = getPathInObj(extraInfos, field.name);
             setFieldArrayDataAndExtraInfo(
@@ -468,6 +486,8 @@ export function setFieldArrayDataAndExtraInfo(
                 reset,
                 extraInfoArr: extraInfo,
                 initialValuesVersion,
+                // Use fieldNames only for initializing values workflow since the child atoms don't exist yet
+                fieldNames: initialValuesVersion ? field.fieldNames : undefined,
                 mode,
               }
             );

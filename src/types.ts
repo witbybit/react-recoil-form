@@ -13,7 +13,7 @@ export interface IFieldAtomValue<D = any, E = any> extends IAtomValueBase {
 
 export interface IFieldArrayAtomValue extends IAtomValueBase {
   rowIds: number[];
-  fieldNames: (string | { name: string; type: IFieldType })[];
+  fieldNames: IChildFieldInfo[];
   skipUnregister?: boolean;
 }
 
@@ -68,13 +68,18 @@ export interface IFieldProps<D> {
   skipUnregister?: boolean;
 }
 
+export type IChildFieldInfo =
+  | string
+  | { name: string; type: 'field' }
+  | { name: string; type: 'field-array'; fieldNames: IChildFieldInfo[] };
+
 export interface IFieldArrayProps {
   name: string;
   /**
    * Name of the fields for this field array.
    * Note that by default it's assumed to be of type 'field'
    */
-  fieldNames: (string | { name: string; type: IFieldType })[];
+  fieldNames: IChildFieldInfo[];
   // TODO: Implement validate here
   // Note that this should be memoized or kept outside a function component so that it doesn't change on every render.
   validate?: (values: any[], otherParams?: any) => string | undefined | null;
