@@ -18,7 +18,7 @@ import {
   IGetFieldArrayInput,
   InitialValues,
 } from './types';
-import { getPathInObj, setPathInObj } from './utils';
+import { getPathInObj, isUndefined, setPathInObj } from './utils';
 
 export const formValuesAtom = atom<FinalValues>({
   key: gan('FormValues'),
@@ -290,8 +290,12 @@ export function getFieldArrayDataAndExtraInfo(
           if (fieldErrors?.length) {
             errors.push(...fieldErrors);
           }
-          setPathInObj(data[rowIdx], field.name, fieldData);
-          setPathInObj(extraInfo[rowIdx], field.name, fieldExtraInfo);
+          if (!isUndefined(fieldData)) {
+            setPathInObj(data[rowIdx], field.name, fieldData);
+          }
+          if (!isUndefined(fieldExtraInfo)) {
+            setPathInObj(extraInfo[rowIdx], field.name, fieldExtraInfo);
+          }
         }
       }
     }

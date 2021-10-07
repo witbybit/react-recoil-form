@@ -28,7 +28,7 @@ import {
   resetFieldArrayRow,
   setFieldArrayDataAndExtraInfo,
 } from './atoms';
-import { generateFormId } from './atomUtils';
+import { generateFormId, snapshotToGet } from './atomUtils';
 import {
   IFieldArrayAtomValue,
   IFieldArrayColWatchParams,
@@ -38,6 +38,7 @@ import {
   IFieldError,
   IFieldProps,
   IFieldWatchParams,
+  IFormContextFieldInput,
   InitialValues,
 } from './types';
 import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
@@ -239,10 +240,91 @@ export function useFormValues() {
   return formValues;
 }
 
-// DEVNOTE: useFieldArray will be triggerred only if no. of rows change
-// TODO: Need to add support for unregister for unmount (has to be a user choice)
+export function useFormContext() {
+  const setValue = useRecoilCallback(
+    ({ set, snapshot, reset }) =>
+      (
+        key: IFormContextFieldInput,
+        newValue: { value?: any; extraInfo?: any }
+      ) => {
+        const get = snapshotToGet(snapshot);
+        const formId = getFormId(get);
+        const newAtomData = {} as Partial<IFieldAtomValue>;
+        if (newValue.value) {
+          newAtomData.data = newValue.value;
+        }
+        if (newValue.extraInfo) {
+          newAtomData.extraInfo = newValue.extraInfo;
+        }
+        if (key.type === 'field') {
+          set(fieldAtomFamily({ ...key, formId }), (atomValue) =>
+            Object.assign({}, atomValue, newAtomData)
+          );
+        } else if (key.type === 'field-array') {
+          setFieldArrayDataAndExtraInfo(
+            {
+              ancestors: key.ancestors,
+              name: key.name,
+            },
+            {
+              get,
+              set,
+              reset,
+              dataArr: newValue.value,
+              extraInfoArr: newValue.extraInfo,
+            }
+          );
+        }
+      },
+    []
+  );
+
+  const getValue = useRecoilCallback(
+    ({ snapshot }) =>
+      (key: IFormContextFieldInput) => {
+        const get = snapshotToGet(snapshot);
+        const formId = getFormId(get);
+        if (key.type === 'field') {
+          const fieldAtom = get(
+            fieldAtomFamily({ ...key, formId })
+          ) as IFieldAtomValue;
+          return { value: fieldAtom.data, extraInfo: fieldAtom.extraInfo };
+        } else if (key.type === 'field-array') {
+          const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
+            {
+              ancestors: key.ancestors,
+              name: key.name,
+            },
+            get
+          );
+          return { value: data, extraInfo };
+        }
+        return null;
+      },
+    []
+  );
+
+  const getValues = useRecoilCallback<any, any>(
+    ({ snapshot }) =>
+      () => {
+        const get = snapshotToGet(snapshot);
+        return getFormValues(get);
+      },
+    []
+  );
+
+  return { getValue, setValue, getValues };
+}
+
 export function useFieldArray(props: IFieldArrayProps) {
-  const { name, fieldNames, validate, skipUnregister, ancestors } = props;
+  const {
+    name,
+    fieldNames,
+    validate,
+    skipUnregister,
+    ancestors,
+    defaultValue,
+  } = props;
   const initialValues = useRecoilValue(formInitialValuesAtom);
   const fieldArrayProps = useRecoilValue(
     fieldAtomFamily({
@@ -412,7 +494,8 @@ export function useFieldArray(props: IFieldArrayProps) {
     ({ set, get, reset }) =>
       () => {
         const initialValues = get(formInitialValuesAtom);
-        const initialValue = getPathInObj(initialValues.values, name);
+        const initialValue =
+          getPathInObj(initialValues.values, name) ?? defaultValue;
         const extraInfo = getPathInObj(initialValues.extraInfos, name);
         set(
           fieldAtomFamily({

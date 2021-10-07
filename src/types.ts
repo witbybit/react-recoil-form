@@ -81,6 +81,7 @@ export interface IFieldArrayProps {
   depFields?: string[];
   skipUnregister?: boolean;
   ancestors?: IAncestorInput[];
+  defaultValue?: any[];
 }
 
 export interface IFieldAtomInput {
@@ -94,6 +95,10 @@ export interface IGetFieldArrayInput extends IFieldAtomInput {
 
 export interface IFieldArrayRowInput extends IFieldAtomInput {
   rowId: number;
+}
+
+export interface IFormContextFieldInput extends IFieldAtomInput {
+  type: IFieldType;
 }
 
 export type IFieldAtomSelectorInput = {

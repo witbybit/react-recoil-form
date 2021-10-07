@@ -1,3 +1,5 @@
+import { RecoilValue, Snapshot } from 'recoil';
+
 export function gan(atomName: string) {
   return `WitForm_${atomName}`;
 }
@@ -15,4 +17,8 @@ export function generateFormId() {
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15)
   );
+}
+
+export function snapshotToGet(snapshot: Snapshot) {
+  return (atom: RecoilValue<any>) => snapshot.getLoadable(atom).contents;
 }
