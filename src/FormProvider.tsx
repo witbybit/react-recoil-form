@@ -153,6 +153,14 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           validate,
         } as Partial<IFieldAtomValue>)
       );
+    } else if (atomValue.initVer === initialValues.version && defaultValue) {
+      // Useful for setting field value as default value inside field array
+      setAtomValue((val) => {
+        if (!val.data) {
+          return Object.assign({}, val, { data: defaultValue });
+        }
+        return val;
+      });
     }
   }, [initializeFieldValue, initialValues.version, atomValue.initVer]);
 
