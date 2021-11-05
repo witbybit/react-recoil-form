@@ -162,7 +162,15 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         return val;
       });
     }
-  }, [initializeFieldValue, initialValues.version, atomValue.initVer]);
+  }, [
+    initializeFieldValue,
+    initialValues.version,
+    atomValue.initVer,
+    defaultValue,
+    validate,
+    atomValue.validate,
+    setAtomValue,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -198,7 +206,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           } as Partial<IFieldAtomValue>)
         );
       },
-      [otherParams, validate, ancestors, name, setAtomValue]
+      [otherParams, validate, setAtomValue]
     ),
     error: touched ? error : undefined,
     onBlur: useCallback(
