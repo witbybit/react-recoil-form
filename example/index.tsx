@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { useFormValues, useIsDirty } from '../src/FormProvider';
+import { useFormValues, useIsDirty } from '../src';
 import ExtraInfoForm from './forms/FileUploadForm';
+import MultipleSimpleForms from './forms/MultipleSimpleForms';
 import MultiStepForm from './forms/MultiStepForm';
 import SimpleFieldArray from './forms/SimpleFieldArray';
 import SimpleForm from './forms/SimpleForm';
@@ -12,6 +13,11 @@ const formExamples = [
     id: 'simple-form',
     title: 'Simple Form',
     getComponent: props => <SimpleForm {...props} />,
+  },
+  {
+    id: 'multiple-simple-forms',
+    title: 'Multiple Simple Forms',
+    getComponent: props => <MultipleSimpleForms {...props} />,
   },
   {
     id: 'simple-field-array',

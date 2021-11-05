@@ -15,7 +15,7 @@ function SimpleFieldArray(props) {
             desc: 'Desc',
           },
           amount: 1000,
-          date: "2019-05-12"
+          date: '2019-05-12',
         },
       ],
     },
@@ -23,7 +23,11 @@ function SimpleFieldArray(props) {
   return (
     <React.Fragment>
       <form onSubmit={handleSubmit}>
-        <InputField name="name" type="text" />
+        <InputField
+          name="name"
+          type="text"
+          validate={(val) => (!val ? 'Required' : null)}
+        />
         <TableField
           name="items"
           fields={[
@@ -35,16 +39,16 @@ function SimpleFieldArray(props) {
         />
         <WatchField
           name="totalAmount"
-          fieldArrayName='items'
+          fieldArrayName="items"
           colNames={['amount']}
-          calculateFunc={values =>
-            values.items?.reduce((acc, val) => acc + (val?.amount ?? 0), 0)
+          calculateFunc={(values) =>
+            values.reduce((acc, val) => acc + (val?.amount ?? 0), 0)
           }
         />
-        <br/>
+        <br />
         <div>
           <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>
+          <button type="button" onClick={() => resetInitialValues()}>
             Reset
           </button>
         </div>

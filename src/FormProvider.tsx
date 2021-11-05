@@ -6,230 +6,42 @@ import React, {
   useRef,
 } from 'react';
 import {
-  atom,
-  atomFamily,
   RecoilRoot,
-  selectorFamily,
-  Snapshot,
-  useRecoilCallback,
+  RecoilState,
+  useRecoilTransaction_UNSTABLE,
   useRecoilState,
   useRecoilTransactionObserver_UNSTABLE,
   useRecoilValue,
   useSetRecoilState,
+  useRecoilCallback,
+  RecoilValue,
 } from 'recoil';
+import {
+  combinedFieldAtomValues,
+  fieldArrayColAtomValueSelectorFamily,
+  fieldAtomFamily,
+  formInitialValuesAtom,
+  formValuesAtom,
+  getFieldArrayDataAndExtraInfo,
+  getFormId,
+  multipleFieldsSelectorFamily,
+  resetFieldArrayRow,
+  setFieldArrayDataAndExtraInfo,
+} from './atoms';
+import { generateFormId, getFullObjectPath, snapshotToGet } from './atomUtils';
+import {
+  IFieldArrayAtomValue,
+  IFieldArrayColWatchParams,
+  IFieldArrayProps,
+  IFieldAtomSelectorInput,
+  IFieldAtomValue,
+  IFieldError,
+  IFieldProps,
+  IFieldWatchParams,
+  IFormContextFieldInput,
+  InitialValues,
+} from './types';
 import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
-
-function gan(atomName: string) {
-  return `WitForm_${atomName}`;
-}
-
-// Excluding __fallback atoms
-function getNameFromAtomFamilyKey(name: string) {
-  const matches = name.match(/WitForm_FormFields__"(.*)"(?!__)/);
-  return matches?.length ? matches[1] : null;
-}
-
-// Excluding __fallback atoms
-function getNameFromFieldArrayAtomFamilyKey(name: string) {
-  const matches = name.match(/WitForm_FormFieldArrays__"(.*)"(?!__)/);
-  return matches?.length ? matches[1] : null;
-}
-
-// TODO: Use better logic to ignore selector for reset
-function isResettableAtom(name: string) {
-  return (
-    name.startsWith('WitForm_') &&
-    name.toLowerCase().indexOf('selectorfamily') === -1
-  );
-}
-
-// abc.sdsdsd/123/sdd.def.deded
-// Break it using / as the delimiter. Last part is the field name
-// ASSUMPTION: / can't used by user in field name
-export interface IFieldAtomValue<D = any, E = any> {
-  data?: D;
-  extraInfo?: E;
-  error?: string | null;
-  validate?: (data: any, otherParams?: any) => string | undefined | null;
-  touched?: boolean;
-  initVer: number;
-}
-
-interface IFieldArrayAtomValue {
-  rowIds: number[];
-  fieldNames: string[];
-  error?: string | null;
-  initVer: number;
-  validate?: (data: any, values?: any) => string | undefined | null;
-}
-
-interface InitialValues {
-  values: any;
-  extraInfos: any;
-  version: number;
-  skipUnregister?: boolean;
-}
-
-interface FinalValues {
-  values: any;
-  extraInfos: any;
-}
-
-function getFieldArrayParts(fieldName: string) {
-  if (!fieldName) {
-    return null;
-  }
-  const parts = fieldName.split('/');
-  if (parts.length === 3) {
-    let rowId = 0;
-    try {
-      rowId = parseInt(parts[1]);
-    } catch (err) {
-      return null;
-    }
-    return { rowId, fieldArrayName: parts[0], fieldName: parts[2] };
-  }
-  return null;
-}
-
-export const fieldsAtomFamily = atomFamily<IFieldAtomValue, string>({
-  key: gan('FormFields'),
-  default: {
-    data: undefined,
-    error: undefined,
-    initVer: 0,
-    touched: undefined,
-  },
-});
-
-export const formValuesAtom = atom<FinalValues>({
-  key: gan('FormValues'),
-  default: { values: {}, extraInfos: {} },
-});
-
-export const formInitialValuesAtom = atom<InitialValues>({
-  key: gan('FormInitialValues'),
-  default: {
-    values: {},
-    version: 0,
-    extraInfos: {},
-    skipUnregister: undefined,
-  },
-});
-
-export const fieldArraysAtomFamily = atomFamily<IFieldArrayAtomValue, string>({
-  key: gan('FormFieldArrays'),
-  default: { rowIds: [], fieldNames: [], initVer: 0 },
-});
-
-// Handles individual fields as well as entire field array column.
-// But it does not take care of individual field inside a field array
-export const mixedFieldsAtomSelectorFamily = selectorFamily<
-  { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
-  string[]
->({
-  key: gan('FormFieldsSelector'),
-  get: (fieldNames: string[]) => {
-    return ({ get }) => {
-      if (!fieldNames?.length) {
-        return { values: {}, extraInfos: {} };
-      }
-      const values: any = {};
-      const extraInfos: any = {};
-      for (const fieldName of fieldNames) {
-        const fieldArrayParts = fieldName.split('/');
-        if (fieldArrayParts.length === 1) {
-          const fieldAtomVal = get(fieldsAtomFamily(fieldName));
-          setPathInObj(values, fieldName, fieldAtomVal?.data);
-          setPathInObj(extraInfos, fieldName, fieldAtomVal?.extraInfo);
-        } else {
-          const fieldArrayFields = fieldArrayParts.slice(1);
-          const fieldArrayName = fieldArrayParts[0];
-          const fieldArrayAtom = fieldArraysAtomFamily(fieldArrayName);
-          const fieldArrayInfo = get(fieldArrayAtom);
-          setPathInObj(values, fieldArrayName, []);
-          setPathInObj(extraInfos, fieldArrayName, []);
-          for (let i = 0; i < fieldArrayInfo.rowIds.length; i++) {
-            const rowId = fieldArrayInfo.rowIds[i];
-            let fieldValues: any = {};
-            const extraInfoValues: any = {};
-            for (const field of fieldArrayFields) {
-              const fieldId = getIdForArrayField(fieldArrayName, rowId, field);
-              if (fieldId) {
-                const fieldAtom = fieldsAtomFamily(fieldId);
-                const fieldData = get(fieldAtom);
-                setPathInObj(fieldValues, field, fieldData.data);
-                setPathInObj(extraInfoValues, field, fieldData.extraInfo);
-              }
-            }
-            getPathInObj(values, fieldArrayName).push(fieldValues);
-            getPathInObj(extraInfos, fieldArrayName).push(extraInfoValues);
-          }
-        }
-      }
-      return { values, extraInfos };
-    };
-  },
-});
-
-export const fieldsAtomSelectorFamily = selectorFamily<
-  { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
-  string[]
->({
-  key: gan('FormFieldsSelector'),
-  get: (fieldNames: string[]) => {
-    return ({ get }) => {
-      if (!fieldNames?.length) {
-        return { values: {}, extraInfos: {} };
-      }
-      const values: any = {};
-      const extraInfos: any = {};
-      for (const fieldName of fieldNames) {
-        const fieldAtomVal = get(fieldsAtomFamily(fieldName));
-        setPathInObj(values, fieldName, fieldAtomVal?.data);
-        setPathInObj(extraInfos, fieldName, fieldAtomVal?.extraInfo);
-      }
-      return { values, extraInfos };
-    };
-  },
-});
-
-export const fieldArrayColAtomSelectorFamily = selectorFamily<
-  { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
-  { fieldArrayName: string; fieldNames: string[] }
->({
-  key: gan('FormFieldsSelector'),
-  get: ({ fieldArrayName, fieldNames }) => {
-    return ({ get }) => {
-      if (!fieldNames?.length) {
-        return { values: {}, extraInfos: {} };
-      }
-      const values: any = {};
-      const extraInfos: any = {};
-      const fieldArrayAtom = fieldArraysAtomFamily(fieldArrayName);
-      const fieldArrayInfo = get(fieldArrayAtom);
-      setPathInObj(values, fieldArrayName, []);
-      setPathInObj(extraInfos, fieldArrayName, []);
-      for (let i = 0; i < fieldArrayInfo.rowIds.length; i++) {
-        const rowId = fieldArrayInfo.rowIds[i];
-        let fieldValues: any = {};
-        const extraInfoValues: any = {};
-        for (const fieldName of fieldNames) {
-          const fieldId = getIdForArrayField(fieldArrayName, rowId, fieldName);
-          if (fieldId) {
-            const fieldAtom = fieldsAtomFamily(fieldId);
-            const fieldData = get(fieldAtom);
-            setPathInObj(fieldValues, fieldName, fieldData.data);
-            setPathInObj(extraInfoValues, fieldName, fieldData.extraInfo);
-          }
-        }
-        getPathInObj(values, fieldArrayName).push(fieldValues);
-        getPathInObj(extraInfos, fieldArrayName).push(extraInfoValues);
-      }
-      return { values, extraInfos };
-    };
-  },
-});
 
 function FormValuesObserver() {
   const setFormValues = useSetRecoilState(formValuesAtom);
@@ -240,10 +52,11 @@ function FormValuesObserver() {
 
   useEffect(() => {
     setFormValues(localFormValues);
-  }, [localFormValues]);
+  }, [localFormValues, setFormValues]);
 
   useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
-    const newValues = getFormValues(snapshot);
+    const get = (atom: RecoilValue<any>) => snapshot.getLoadable(atom).contents;
+    const newValues = getFormValues(get);
     if (!isDeepEqual(newValues, localFormValues)) {
       setLocalFormValues(newValues);
     }
@@ -251,121 +64,105 @@ function FormValuesObserver() {
   return null;
 }
 
-// interface IWatchParams {
-//   name: string;
-//   defaultValue?: any;
-// }
-
-interface IFieldWatchParams {
-  fieldNames: string[];
-}
-
-interface IFieldArrayColWatchParams {
-  fieldArrayName: string;
-  fieldNames: string[];
-}
-
-// interface IMultipleWatchParams {
-//   names: string[];
-// }
-
-export interface IFieldProps<D> {
-  name: string;
-  defaultValue?: D;
-  validate?: (value?: D, otherParams?: any) => string | undefined | null;
-  /**
-   * Useful for referencing other fields in validation
-   * */
-  depFields?: string[];
-  skipUnregister?: boolean;
-}
-
-interface IFieldArrayProps {
-  name: string;
-  fieldNames: string[];
-  // TODO: Implement validate here
-  // Note that this should be memoized or kept outside a function component so that it doesn't change on every render.
-  validate?: (values: any[], otherParams?: any) => string | undefined | null;
-  depFields?: string[];
-  skipUnregister?: boolean;
-}
-
 // TODO: Check if useField should be rendered again when same params are passed again
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
-  const { name, validate, defaultValue, depFields, skipUnregister } = props;
-  const [atomValue, setAtomValue] = useRecoilState<IFieldAtomValue<D, E>>(
-    fieldsAtomFamily(name)
+  const { ancestors, name, validate, defaultValue, depFields, skipUnregister } =
+    props;
+  const initialValues = useRecoilValue(formInitialValuesAtom);
+  const [atomValue, setAtomValue] = useRecoilState(
+    fieldAtomFamily({
+      ancestors: ancestors ?? [],
+      name,
+      type: 'field',
+      formId: initialValues.formId,
+    }) as RecoilState<IFieldAtomValue<D, E>>
   );
   const oldOtherParamsRef = useRef<any>(null);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
-  const initialValues = useRecoilValue(formInitialValuesAtom);
 
   // TODO: Memoize or change the params so that this hook doesn't render everytime useField is rendered
   const otherParams = useRecoilValue(
-    mixedFieldsAtomSelectorFamily(depFields ?? [])
+    multipleFieldsSelectorFamily(depFields ?? [])
   );
 
-  const initializeFieldValue = useRecoilCallback(
-    ({ set, snapshot }) => () => {
-      const initialValues = snapshot.getLoadable(formInitialValuesAtom)
-        .contents as InitialValues;
-      if (initialValues.values) {
-        const fieldArrayParts = getFieldArrayParts(name);
-        //TODO: Add field array atoms depending on initial values
-        if (!fieldArrayParts) {
-          const initialValue = getPathInObj(initialValues.values, name);
-          const extraInfo = getPathInObj(initialValues.extraInfos, name);
-          set(fieldsAtomFamily(name), {
-            data: initialValue ?? defaultValue ?? undefined,
-            error: undefined,
-            extraInfo,
+  const initializeFieldValue = useRecoilTransaction_UNSTABLE(
+    ({ set, get }) =>
+      () => {
+        const initialValues = get(formInitialValuesAtom);
+        const fieldAtom = fieldAtomFamily({
+          ancestors: ancestors ?? [],
+          name,
+          type: 'field',
+          formId: initialValues.formId,
+        });
+        set(fieldAtom, (val) =>
+          Object.assign({}, val, {
             validate,
             initVer: initialValues.version,
-            touched: false,
-          });
-        } else {
-          // Initialize validation function for fields inside field array
-          set(fieldsAtomFamily(name), state =>
-            Object.assign({}, state, {
+          } as Partial<IFieldAtomValue>)
+        );
+        if (initialValues.values) {
+          //TODO: Add field array atoms depending on initial values
+          if (!ancestors?.length) {
+            const initialValue = getPathInObj(initialValues.values, name);
+            const extraInfo = getPathInObj(initialValues.extraInfos, name);
+            set(fieldAtom, {
+              data: initialValue ?? defaultValue ?? undefined,
+              error: undefined,
+              extraInfo,
               validate,
               initVer: initialValues.version,
+              touched: false,
+              type: 'field',
+            });
+          }
+        }
+      },
+    [name, defaultValue, validate, ancestors]
+  );
+
+  const resetField = useRecoilTransaction_UNSTABLE(
+    ({ reset }) =>
+      () => {
+        // DEVNOTE: Not resetting the field if it is part of field array
+        // since field array reset will reset those fields
+        if (
+          !skipUnregister &&
+          !initialValues.skipUnregister &&
+          !ancestors?.length
+        ) {
+          reset(
+            fieldAtomFamily({
+              name,
+              ancestors: ancestors ?? [],
+              type: 'field',
+              formId: initialValues.formId,
             })
           );
         }
-      }
-    },
-    [name, defaultValue]
-  );
-
-  const resetField = useRecoilCallback(
-    ({ reset }) => () => {
-      // DEVNOTE: Not resetting the field if it is part of field array
-      // since field array reset will reset those fields
-      if (
-        !skipUnregister &&
-        !initialValues.skipUnregister &&
-        !getFieldArrayParts(name)
-      ) {
-        reset(fieldsAtomFamily(name));
-      }
-    },
-    [skipUnregister, name, initialValues]
+      },
+    [skipUnregister, name, initialValues, ancestors]
   );
 
   useEffect(() => {
     if (atomValue.initVer < initialValues.version) {
       initializeFieldValue();
     } else if (validate && !atomValue.validate) {
-      setAtomValue(val => Object.assign({}, val, { validate }));
+      setAtomValue((val) =>
+        Object.assign({}, val, {
+          validate,
+        } as Partial<IFieldAtomValue>)
+      );
+    } else if (atomValue.initVer === initialValues.version && defaultValue) {
+      // Useful for setting field value as default value inside field array
+      setAtomValue((val) => {
+        if (!val.data) {
+          return Object.assign({}, val, { data: defaultValue });
+        }
+        return val;
+      });
     }
-  }, [
-    initializeFieldValue,
-    initialValues,
-    atomValue.initVer,
-    setAtomValue,
-    validate,
-    atomValue.validate,
-  ]);
+  }, [initializeFieldValue, initialValues.version, atomValue.initVer]);
 
   useEffect(() => {
     return () => {
@@ -379,13 +176,13 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
       !isDeepEqual(oldOtherParamsRef.current, otherParams)
     ) {
       oldOtherParamsRef.current = otherParams;
-      setAtomValue(val =>
+      setAtomValue((val) =>
         Object.assign({}, val, {
           error: validate ? validate(val.data, otherParams) : undefined,
         })
       );
     }
-  }, [otherParams]);
+  }, [otherParams, validate, setAtomValue]);
 
   return {
     fieldValue,
@@ -393,20 +190,20 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     extraInfo,
     setFieldValue: useCallback(
       (data: D, extraInfo?: E) => {
-        setAtomValue(val =>
+        setAtomValue((val) =>
           Object.assign({}, val, {
             data,
             extraInfo,
             error: validate ? validate(data, otherParams) : undefined,
-          })
+          } as Partial<IFieldAtomValue>)
         );
       },
-      [otherParams, validate, setAtomValue]
+      [otherParams, validate, ancestors, name, setAtomValue]
     ),
     error: touched ? error : undefined,
     onBlur: useCallback(
       () =>
-        setAtomValue(val =>
+        setAtomValue((val) =>
           val.touched ? val : Object.assign({}, val, { touched: true })
         ),
       [setAtomValue]
@@ -415,33 +212,16 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   };
 }
 
-// export function useWatch(props: IWatchParams) {
-//   const { name, defaultValue } = props;
-//   const selector = mixedFieldsAtomSelectorFamily([name]);
-//   const { values, extraInfos } = useRecoilValue(selector);
-//   return {
-//     value: values ? getPathInObj(values, name) : defaultValue,
-//     extraInfo: getPathInObj(extraInfos, name),
-//   };
-// }
-
-// export function useMultipleWatch(props: IMultipleWatchParams) {
-//   const { names } = props;
-//   const selector = mixedFieldsAtomSelectorFamily(names);
-//   const { values, extraInfos } = useRecoilValue(selector);
-//   return { values, extraInfos };
-// }
-
 export function useFieldWatch(props: IFieldWatchParams) {
   const { fieldNames } = props;
-  const selector = fieldsAtomSelectorFamily(fieldNames);
+  const selector = multipleFieldsSelectorFamily(fieldNames);
   const { values, extraInfos } = useRecoilValue(selector);
   return { values, extraInfos };
 }
 
 export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
   const { fieldArrayName, fieldNames } = props;
-  const selector = fieldArrayColAtomSelectorFamily({
+  const selector = fieldArrayColAtomValueSelectorFamily({
     fieldArrayName,
     fieldNames,
   });
@@ -460,434 +240,350 @@ export function useFormValues() {
   return formValues;
 }
 
-// TODO: Can consider renaming this in the future. The name was chosen to make it compatible with react-hook-form
 export function useFormContext() {
-  // TODO: setFieldValue is probably a better name here since we can't set value for table fields here.
-  // setValue is currently used for consistency with react-hook-form
-  const setValue = useRecoilCallback<any, any>(
-    ({ set }) => (key: string, value: any) => {
-      set(fieldsAtomFamily(key), value);
-    },
+  const setValue = useRecoilCallback(
+    ({ set, snapshot, reset }) =>
+      (
+        key: IFormContextFieldInput,
+        newValue: { value?: any; extraInfo?: any }
+      ) => {
+        const get = snapshotToGet(snapshot);
+        const formId = getFormId(get);
+        const newAtomData = {} as Partial<IFieldAtomValue>;
+        if (newValue.value) {
+          newAtomData.data = newValue.value;
+        }
+        if (newValue.extraInfo) {
+          newAtomData.extraInfo = newValue.extraInfo;
+        }
+        if (key.type === 'field') {
+          set(fieldAtomFamily({ ...key, formId }), (atomValue) =>
+            Object.assign({}, atomValue, newAtomData)
+          );
+        } else if (key.type === 'field-array') {
+          setFieldArrayDataAndExtraInfo(
+            {
+              ancestors: key.ancestors,
+              name: key.name,
+            },
+            {
+              get,
+              set,
+              reset,
+              dataArr: newValue.value,
+              extraInfoArr: newValue.extraInfo,
+            }
+          );
+        }
+      },
     []
   );
-  // TODO: getFieldValue is probably a better name here since we can't get value for table fields here
-  // getValue is currently used for consistency with react-hook-form
-  const getValue = useRecoilCallback<any, any>(
-    ({ snapshot }) => (key: string) => {
-      return snapshot.getLoadable(fieldsAtomFamily(key))?.contents;
-    },
+
+  const getValue = useRecoilCallback(
+    ({ snapshot }) =>
+      (key: IFormContextFieldInput) => {
+        const get = snapshotToGet(snapshot);
+        const formId = getFormId(get);
+        if (key.type === 'field') {
+          const fieldAtom = get(
+            fieldAtomFamily({ ...key, formId })
+          ) as IFieldAtomValue;
+          return { value: fieldAtom.data, extraInfo: fieldAtom.extraInfo };
+        } else if (key.type === 'field-array') {
+          const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
+            {
+              ancestors: key.ancestors,
+              name: key.name,
+            },
+            get
+          );
+          return { value: data, extraInfo };
+        }
+        return null;
+      },
     []
   );
+
   const getValues = useRecoilCallback<any, any>(
-    ({ snapshot }) => () => {
-      return getFormValues(snapshot).values;
-    },
+    ({ snapshot }) =>
+      () => {
+        const get = snapshotToGet(snapshot);
+        return getFormValues(get);
+      },
     []
   );
+
   return { getValue, setValue, getValues };
 }
 
-function getIdForArrayField(
-  fieldArrayName: string,
-  rowId: number,
-  fieldName: string
-) {
-  if (!rowId) {
-    throw new Error('getIdForArrayField() called with invalid rowId');
-  }
-  return `${fieldArrayName}/${rowId}/${fieldName}`;
-}
-
-// DEVNOTE: useFieldArray will be triggerred only if no. of rows change
-// TODO: Need to add support for unregister for unmount (has to be a user choice)
 export function useFieldArray(props: IFieldArrayProps) {
-  const { name, fieldNames, validate, skipUnregister } = props;
-  const [fieldArrayProps, setFieldArrayProps] = useRecoilState(
-    fieldArraysAtomFamily(name)
-  );
+  const {
+    name,
+    fieldNames,
+    validate,
+    skipUnregister,
+    ancestors,
+    defaultValue,
+  } = props;
   const initialValues = useRecoilValue(formInitialValuesAtom);
+  const fieldArrayProps = useRecoilValue(
+    fieldAtomFamily({
+      name,
+      ancestors: ancestors ?? [],
+      type: 'field-array',
+      formId: initialValues.formId,
+    }) as RecoilState<IFieldArrayAtomValue>
+  );
 
   // const otherParams = useMultipleWatch({ names: depFields ?? [] })
 
-  const getFieldIdInArray = useCallback(
-    (rowIndex: number, fieldName: string) => {
-      if (fieldArrayProps.rowIds.length > rowIndex) {
-        return getIdForArrayField(
-          name,
-          fieldArrayProps.rowIds[rowIndex],
-          fieldName
+  const setFieldArrayValue = useRecoilTransaction_UNSTABLE(
+    ({ get, set, reset }) =>
+      (fieldValues: any[]) => {
+        setFieldArrayDataAndExtraInfo(
+          { name, ancestors: ancestors ?? [] },
+          {
+            get,
+            set,
+            reset,
+            dataArr: fieldValues,
+          }
         );
       }
-      throw new Error('rowIndex is out of bounds in getFieldIdInArray');
-    },
-    [name, fieldArrayProps]
-  );
-
-  const setFieldArrayValue = useRecoilCallback(
-    ({ snapshot, set, reset }) => (fieldValues: any[]) => {
-      const fieldArrayAtom = fieldArraysAtomFamily(name);
-      const fieldArrayLoadable = snapshot.getLoadable(fieldArrayAtom);
-      if (fieldArrayLoadable.state === 'hasValue') {
-        let oldRowIds = fieldArrayLoadable.contents.rowIds;
-        const rowsLength = fieldValues.length;
-        let updatedAtomValue = fieldArrayLoadable.contents;
-        // Set the no. of rows as per given values
-        let rowIdsToRemove: number[] = [];
-        if (oldRowIds.length !== rowsLength) {
-          const data = fieldArrayLoadable.contents;
-          let rowIds: number[] = [];
-          if (oldRowIds.length > rowsLength) {
-            rowIds = oldRowIds.slice(0, rowsLength);
-            rowIdsToRemove = oldRowIds.slice(rowsLength, oldRowIds.length);
-          } else if (oldRowIds.length < rowsLength) {
-            const noOfElementsToAdd = rowsLength - oldRowIds.length;
-            for (let i = 0; i < noOfElementsToAdd; i++) {
-              const val = Math.floor(Math.random() * 10000);
-              rowIds = [...data.rowIds];
-              if (rowIds.indexOf(val) === -1) {
-                rowIds.push(val);
-              }
-            }
-          }
-          updatedAtomValue = Object.assign({}, data, {
-            rowIds,
-          });
-          set(fieldArraysAtomFamily(name), updatedAtomValue);
-          for (const rowId of rowIdsToRemove) {
-            for (const fieldName of fieldNames) {
-              const fieldId = getIdForArrayField(name, rowId, fieldName);
-              if (fieldId) {
-                // TODO: Check if this can cause any issue with existing selector
-                reset(fieldsAtomFamily(fieldId));
-              }
-            }
-          }
-        }
-        for (let i = 0; i < fieldValues.length; i++) {
-          const fieldRow = fieldValues[i];
-          for (const fieldName of fieldNames) {
-            const fieldId = getIdForArrayField(
-              name,
-              updatedAtomValue.rowIds[i],
-              fieldName
-            );
-            if (fieldId) {
-              set(fieldsAtomFamily(fieldId), currValue =>
-                Object.assign({}, currValue, {
-                  data: getPathInObj(fieldRow, fieldName),
-                })
-              );
-            }
-          }
-        }
-      }
-    }
   );
 
   const validateData = useRecoilCallback(
-    ({ snapshot, set }) => () => {
-      const errors: any = [];
-      for (const rowId of fieldArrayProps.rowIds) {
-        for (const fieldName of fieldArrayProps.fieldNames) {
-          const fieldId = getIdForArrayField(name, rowId, fieldName);
-          if (fieldId) {
-            const fieldAtom = fieldsAtomFamily(fieldId);
-            const atomLoadable = snapshot.getLoadable(fieldAtom);
-            if (atomLoadable.state === 'hasValue') {
-              const formFieldData = atomLoadable.contents as IFieldAtomValue;
-              const errorMsg = formFieldData.validate?.(formFieldData.data);
-              if (errorMsg) {
-                errors.push({ fieldName, error: errorMsg, type: 'field' });
-              }
-              set(fieldAtom, val =>
-                Object.assign({}, val, { error: errorMsg, touched: true })
-              );
-            }
+    ({ snapshot, set }) =>
+      () => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        const { errors } = getFieldArrayDataAndExtraInfo(
+          { name, ancestors: ancestors ?? [] },
+          get,
+          {
+            set,
+            isValidation: true,
           }
-        }
-      }
-      if (fieldArrayProps.validate) {
-        const result: any[] = [];
-        for (let index = 0; index < fieldArrayProps.rowIds.length; index++) {
-          const rowId = fieldArrayProps.rowIds[index];
-          result.push({});
-          for (let j = 0; j < fieldArrayProps.fieldNames.length; j++) {
-            const fieldArrayFieldName = fieldArrayProps.fieldNames[j];
-            const fieldId = getIdForArrayField(
-              name,
-              rowId,
-              fieldArrayFieldName
-            );
-            if (fieldId) {
-              const fieldLoadable = snapshot.getLoadable(
-                fieldsAtomFamily(fieldId)
-              );
-              if (fieldLoadable.state === 'hasValue') {
-                setPathInObj(
-                  result[index],
-                  fieldArrayFieldName,
-                  fieldLoadable.contents?.data
-                );
-              }
-            }
-          }
-        }
-        const errorMsg = fieldArrayProps.validate?.(result);
-        if (errorMsg) {
-          errors.push({
-            fieldName: name,
-            error: errorMsg,
-            type: 'field-array',
-          });
-        }
-        set(fieldArraysAtomFamily(name), val =>
-          Object.assign({}, val, { error: errorMsg })
         );
-      }
-      return { errors, isValid: !errors?.length };
-    },
+        return { errors, isValid: !errors?.length };
+      },
     [name, fieldArrayProps]
   );
 
   const getFieldArrayValue = useRecoilCallback(
-    ({ snapshot }) => () => {
-      let index = -1;
-      const result: any = [];
-      for (const rowId of fieldArrayProps.rowIds) {
-        index++;
-        result.push({});
-        for (const fieldName of fieldNames) {
-          const fieldId = getIdForArrayField(name, rowId, fieldName);
-          if (fieldId) {
-            const fieldLoadable = snapshot.getLoadable(
-              fieldsAtomFamily(fieldId)
-            );
-            if (fieldLoadable.state === 'hasValue') {
-              setPathInObj(
-                result[index],
-                fieldName,
-                fieldLoadable.contents?.data
-              );
-            }
-          }
-        }
-      }
-      return result;
-    },
-    [fieldArrayProps]
+    ({ snapshot }) =>
+      () => {
+        const get = snapshotToGet(snapshot);
+        return getFieldArrayDataAndExtraInfo(
+          { name, ancestors: ancestors ?? [] },
+          get
+        ).data;
+      },
+    [name, ancestors]
   );
 
-  const append = useRecoilCallback(
-    ({ set, snapshot }) => (row?: any) => {
-      let newRowId: number = 0;
-      const val = Math.floor(Math.random() * 10000) + 1;
-      const faAtom = snapshot.getLoadable(fieldArraysAtomFamily(name));
-      const faValue = faAtom.contents as IFieldArrayAtomValue;
-      if (faValue.rowIds.indexOf(val) === -1) {
-        newRowId = val;
-      }
-      if (newRowId !== 0) {
-        set(fieldArraysAtomFamily(name), currVal =>
-          Object.assign({}, currVal, { rowIds: [...currVal.rowIds, newRowId] })
-        );
-        if (row) {
-          for (const fieldName of fieldNames) {
-            const rowVal = getPathInObj(row, fieldName);
-            if (rowVal !== undefined && rowVal !== null) {
-              const fieldNameInArr = getIdForArrayField(
-                name,
-                newRowId,
-                fieldName
-              );
-              if (fieldNameInArr) {
-                set(fieldsAtomFamily(fieldNameInArr), currVal => {
-                  return Object.assign({}, currVal, {
-                    data: rowVal,
-                  });
-                });
-              }
-            }
-          }
+  const remove = useRecoilTransaction_UNSTABLE(
+    ({ set, get, reset }) =>
+      (index: number) => {
+        const formId = getFormId(get);
+        const fieldArrayAtomValue = get(
+          fieldAtomFamily({
+            ancestors: ancestors ?? [],
+            name,
+            type: 'field-array',
+            formId,
+          })
+        ) as IFieldArrayAtomValue;
+        let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
+        if (rowIdToRemove !== null) {
+          resetFieldArrayRow(
+            { name, rowId: rowIdToRemove, ancestors: ancestors ?? [] },
+            get,
+            reset
+          );
+          const tempRowIds = [...fieldArrayAtomValue.rowIds];
+          tempRowIds.splice(index, 1);
+          set(
+            fieldAtomFamily({
+              ancestors: ancestors ?? [],
+              name,
+              type: 'field-array',
+              formId,
+            }),
+            (existingValue) =>
+              Object.assign({}, existingValue, {
+                rowIds: tempRowIds,
+              })
+          );
         }
-      }
-    },
+      },
+    [name, ancestors]
+  );
+
+  const removeAll = useRecoilTransaction_UNSTABLE(
+    ({ get, set, reset }) =>
+      () => {
+        const formId = getFormId(get);
+        const fieldArrayAtomValue = get(
+          fieldAtomFamily({
+            name,
+            ancestors: ancestors ?? [],
+            type: 'field-array',
+            formId,
+          })
+        ) as IFieldArrayAtomValue;
+        const rowIds = fieldArrayAtomValue.rowIds;
+        for (const rowId of rowIds) {
+          resetFieldArrayRow(
+            { name, rowId, ancestors: ancestors ?? [] },
+            get,
+            reset
+          );
+        }
+        set(
+          fieldAtomFamily({
+            name,
+            ancestors: ancestors ?? [],
+            type: 'field-array',
+            formId,
+          }),
+          Object.assign({}, fieldArrayAtomValue, {
+            rowIds: [],
+          })
+        );
+      },
+    [name, ancestors]
+  );
+
+  const append = useRecoilTransaction_UNSTABLE(
+    ({ set, get, reset }) =>
+      (...rows: any[]) => {
+        setFieldArrayDataAndExtraInfo(
+          { name, ancestors: ancestors ?? [] },
+          {
+            get,
+            set,
+            reset,
+            dataArr: rows,
+            mode: { type: 'insert' },
+          }
+        );
+      },
     [name, fieldNames]
   );
 
-  const remove = useRecoilCallback(
-    ({ set, reset, snapshot }) => (index: number) => {
-      const fieldArrayAtom = snapshot.getLoadable(fieldArraysAtomFamily(name));
-      const fieldArrayAtomValue = fieldArrayAtom.contents as IFieldArrayAtomValue;
-      let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
-      if (rowIdToRemove !== null) {
-        for (const fieldName of fieldNames) {
-          const fieldIdArr = getIdForArrayField(name, rowIdToRemove, fieldName);
-          if (fieldIdArr) {
-            reset(fieldsAtomFamily(fieldIdArr));
+  const insert = useRecoilTransaction_UNSTABLE(
+    ({ set, get, reset }) =>
+      (index: number, ...rows: any[]) => {
+        setFieldArrayDataAndExtraInfo(
+          { name, ancestors: ancestors ?? [] },
+          {
+            get,
+            set,
+            reset,
+            dataArr: rows,
+            mode: { type: 'insert', rowIndex: index },
           }
-        }
-        const rowIds = [...fieldArrayAtomValue.rowIds];
-        rowIds.splice(index, 1);
-        set(
-          fieldArraysAtomFamily(name),
-          Object.assign({}, fieldArrayAtomValue, {
-            rowIds,
-          })
         );
-      }
-    },
-    []
-  );
-
-  const removeAll = useRecoilCallback(
-    ({ snapshot, set, reset }) => () => {
-      const fieldArrayLoadable = snapshot.getLoadable(
-        fieldArraysAtomFamily(name)
-      );
-      if (fieldArrayLoadable.state === 'hasValue') {
-        const rowIds = fieldArrayLoadable.contents.rowIds;
-        for (const rowId of rowIds) {
-          for (const fieldName of fieldNames) {
-            const fieldIdArr = getIdForArrayField(name, rowId, fieldName);
-            if (fieldIdArr) {
-              reset(fieldsAtomFamily(fieldIdArr));
-            }
-          }
-        }
-        set(
-          fieldArraysAtomFamily(name),
-          Object.assign({}, fieldArrayLoadable.contents, {
-            rowIds: [],
-          })
-        );
-      }
-    },
-    []
-  );
-
-  const insert = useRecoilCallback(
-    ({ set }) => (index: number, value?: any) => {
-      let rowId = Math.floor(Math.random() * 10000);
-      while (fieldArrayProps.rowIds.indexOf(rowId) !== -1) {
-        rowId = Math.floor(Math.random() * 10000);
-      }
-      set(fieldArraysAtomFamily(name), currVal => {
-        const rowIds = [...currVal.rowIds];
-        rowIds?.splice(index + 1, 0, rowId);
-        return Object.assign({}, currVal, {
-          rowIds,
-        });
-      });
-      if (value && typeof value === 'object') {
-        for (const key of fieldNames) {
-          if (value[key] !== undefined && value[key] !== null) {
-            const fieldId = getIdForArrayField(name, rowId, key);
-            if (fieldId) {
-              set(fieldsAtomFamily(fieldId), value[key]);
-            }
-          }
-        }
-      }
-    },
+      },
     [fieldArrayProps.rowIds, name]
   );
 
-  const initializeFieldArrayValue = useRecoilCallback(
-    ({ set, snapshot }) => () => {
-      const initialValues = snapshot.getLoadable(formInitialValuesAtom)
-        .contents as InitialValues;
-      if (initialValues.values) {
-        const initialValue = getPathInObj(initialValues.values, name);
-        const extraInfo = getPathInObj(initialValues.extraInfos, name);
-        if (initialValue?.length) {
-          let rowIds: number[] = [];
-          for (let i = 0; i < initialValue.length; i++) {
-            // TODO: Try random number multiple times in case it fails to generate a unique id
-            const val = Math.floor(Math.random() * 10000);
-            if (rowIds.indexOf(val) === -1) {
-              rowIds.push(val);
-            }
-          }
-          for (let j = 0; j < initialValue.length; j++) {
-            const obj = initialValue[j];
-            const extraInfoObj = extraInfo?.[j];
-            for (const fieldName of fieldNames) {
-              const fieldAtomName = getIdForArrayField(
-                name,
-                rowIds[j],
-                fieldName
-              );
-              if (fieldAtomName) {
-                set(fieldsAtomFamily(fieldAtomName), value =>
-                  Object.assign({}, value, {
-                    data: getPathInObj(obj, fieldName),
-                    extraInfo: extraInfoObj
-                      ? getPathInObj(extraInfoObj, fieldName)
-                      : undefined,
-                    initVer: initialValues.version,
-                  } as Partial<IFieldAtomValue>)
-                );
-              }
-            }
-          }
-          set(fieldArraysAtomFamily(name), currVal => {
-            return Object.assign({}, currVal, {
-              rowIds,
-              initVer: initialValues.version,
+  const initializeFieldArrayValue = useRecoilTransaction_UNSTABLE(
+    ({ set, get, reset }) =>
+      () => {
+        const initialValues = get(formInitialValuesAtom);
+        const objPath = getFullObjectPath(
+          {
+            name,
+            ancestors: ancestors ?? [],
+            type: 'field-array',
+            formId: initialValues.formId,
+          },
+          get
+        );
+        const initialValue =
+          getPathInObj(initialValues.values, objPath) ?? defaultValue;
+        const extraInfo = getPathInObj(initialValues.extraInfos, objPath);
+        set(
+          fieldAtomFamily({
+            name,
+            ancestors: ancestors ?? [],
+            type: 'field-array',
+            formId: initialValues.formId,
+          }),
+          (val) =>
+            Object.assign({}, val, {
               validate,
               fieldNames,
-            });
-          });
-        } else {
-          set(fieldArraysAtomFamily(name), {
-            rowIds: [],
-            initVer: initialValues.version,
-            validate,
-            fieldNames,
-          });
+              initVer: initialValues.version,
+              skipUnregister,
+            } as Partial<IFieldArrayAtomValue>)
+        );
+        // Values are only initialized for fields or field arrays without ancestors
+        if (!ancestors?.length && initialValue?.length) {
+          setFieldArrayDataAndExtraInfo(
+            { name, ancestors: ancestors ?? [] },
+            {
+              get,
+              set,
+              reset,
+              dataArr: initialValue,
+              extraInfoArr: extraInfo,
+              initialValuesVersion: initialValues.version,
+              skipRecursion: true,
+            }
+          );
         }
-      }
-    },
-    [name]
+      },
+    [name, validate, fieldNames, ancestors, skipUnregister]
   );
 
-  const resetFieldArray = useRecoilCallback(
-    ({ reset, snapshot }) => (name: string) => {
-      const fieldArrayAtom = fieldArraysAtomFamily(name);
-      const fieldArrayAtomValue = snapshot.getLoadable(fieldArrayAtom)
-        .contents as IFieldArrayAtomValue;
-      if (!skipUnregister && !initialValues.skipUnregister) {
-        reset(fieldArrayAtom);
-        for (const rowId of fieldArrayAtomValue.rowIds) {
-          for (const fieldName of fieldArrayAtomValue.fieldNames) {
-            const fieldId = getIdForArrayField(name, rowId, fieldName);
-            if (fieldId) {
-              reset(fieldsAtomFamily(fieldId));
-            }
+  const resetFieldArray = useRecoilTransaction_UNSTABLE(
+    ({ reset, get }) =>
+      (name: string) => {
+        const topAncestor = ancestors?.[0];
+        if (topAncestor) {
+          const topAncestorVal = get(
+            fieldAtomFamily({
+              ancestors: [],
+              name: topAncestor.name,
+              type: 'field-array',
+              formId: initialValues.formId,
+            })
+          ) as IFieldArrayAtomValue;
+          if (topAncestorVal.skipUnregister) {
+            // If top field array has skip unregister, then all field arrays/fields below should follow
+            return;
           }
         }
-      }
-    },
+        const fieldArrayAtom = fieldAtomFamily({
+          ancestors: ancestors ?? [],
+          name,
+          type: 'field-array',
+          formId: initialValues.formId,
+        });
+        const value = get(fieldArrayAtom);
+        const fieldArrayAtomValue = value as IFieldArrayAtomValue;
+        if (!skipUnregister && !initialValues.skipUnregister) {
+          for (const rowId of fieldArrayAtomValue.rowIds) {
+            resetFieldArrayRow(
+              { name, ancestors: ancestors ?? [], rowId },
+              get,
+              reset
+            );
+          }
+          reset(fieldArrayAtom);
+        }
+      },
     [skipUnregister, initialValues]
   );
 
   useEffect(() => {
-    // DEVNOTE: Need to check for isInit prop here since same field array hook could be used in different components
-    // And we want to avoid overwriting the user value unless it is intentional
     if (fieldArrayProps.initVer < initialValues.version) {
       initializeFieldArrayValue();
     }
-    if (validate && !fieldArrayProps.validate) {
-      setFieldArrayProps(val => Object.assign({}, val, { validate }));
-    }
-  }, [
-    initializeFieldArrayValue,
-    initialValues,
-    fieldArrayProps.initVer,
-    setFieldArrayProps,
-    validate,
-    fieldArrayProps.validate,
-  ]);
+  }, [initializeFieldArrayValue, initialValues, fieldArrayProps.initVer]);
 
   useEffect(() => {
     return () => {
@@ -901,7 +597,6 @@ export function useFieldArray(props: IFieldArrayProps) {
     fieldArrayProps,
     insert,
     validateData,
-    getFieldIdInArray,
     removeAll,
     getFieldArrayValue,
     setFieldArrayValue,
@@ -929,59 +624,66 @@ interface IFormProps {
   skipUnregister?: boolean;
 }
 
-interface IFieldError {
-  fieldName: string;
-  error: string;
-  type: 'field' | 'field-array';
-}
-
-function getFormValues(snapshot: Snapshot) {
-  const atoms = (snapshot as any).getNodes_UNSTABLE();
+const getFormValues = (get: (val: RecoilValue<any>) => any) => {
   const values: any = {};
   const extraInfos: any = {};
-  let formFieldAtomsIt = atoms.next();
-  while (formFieldAtomsIt && !formFieldAtomsIt.done) {
-    const atom = formFieldAtomsIt.value;
-    const fieldName = getNameFromAtomFamilyKey(atom.key);
-    if (fieldName) {
-      const atomLoadable = snapshot.getLoadable(atom);
-      const fieldArrayParts = getFieldArrayParts(fieldName);
-      const formFieldData = atomLoadable.contents as IFieldAtomValue;
-      if (fieldArrayParts) {
-        const fieldArrayLoadable = snapshot.getLoadable<IFieldArrayAtomValue>(
-          fieldArraysAtomFamily(fieldArrayParts.fieldArrayName)
-        );
-        if (fieldArrayLoadable.state === 'hasValue') {
-          const rowIndex = fieldArrayLoadable.contents.rowIds.indexOf(
-            fieldArrayParts.rowId
-          );
-          if (rowIndex >= 0) {
-            const fieldPathInValues = `${fieldArrayParts.fieldArrayName}[${rowIndex}].${fieldArrayParts.fieldName}`;
-            if (!isUndefined(formFieldData.data)) {
-              setPathInObj(values, fieldPathInValues, formFieldData.data);
+  const initialValues = get(formInitialValuesAtom) as InitialValues;
+  const formId = initialValues.formId;
+  const fieldArrays = combinedFieldAtomValues[formId]
+    ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
+    : [];
+  const fields = combinedFieldAtomValues[formId]
+    ? Object.values(combinedFieldAtomValues[formId].fields)
+    : [];
+  for (const fieldAtomValue of fields) {
+    const ancestors = fieldAtomValue.param.ancestors;
+    let pathAncestors: { name: string; index: number }[] = [];
+    if (ancestors.length) {
+      for (let i = 0; i < ancestors.length; i++) {
+        const fieldArray = fieldArrays.find((f) => {
+          if (f.param.name === ancestors[i].name) {
+            for (let j = 0; j < i; j++) {
+              if (
+                f.param.ancestors[j].name !== ancestors[j].name ||
+                f.param.ancestors[j].rowId !== ancestors[j].rowId
+              ) {
+                return false;
+              }
             }
-            if (!isUndefined(formFieldData.extraInfo)) {
-              setPathInObj(
-                extraInfos,
-                fieldPathInValues,
-                formFieldData.extraInfo
-              );
-            }
+            return true;
           }
-        }
-      } else {
-        if (!isUndefined(formFieldData.data)) {
-          setPathInObj(values, fieldName, formFieldData.data);
-        }
-        if (!isUndefined(formFieldData.extraInfo)) {
-          setPathInObj(extraInfos, fieldName, formFieldData.extraInfo);
+          return false;
+        });
+        if (fieldArray) {
+          pathAncestors.push({
+            name: fieldArray.param.name,
+            index: fieldArray.atomValue.rowIds.findIndex(
+              (rid) => ancestors[i].rowId === rid
+            ),
+          });
+        } else {
+          throw new Error(
+            `Field array '${ancestors[i].name}' in the ancestors of field ${fieldAtomValue.param.name} was not found`
+          );
         }
       }
     }
-    formFieldAtomsIt = atoms.next();
+    const data = fieldAtomValue.atomValue.data;
+    const extraInfo = fieldAtomValue.atomValue.extraInfo;
+    if (!isUndefined(data)) {
+      setPathInObj(values, fieldAtomValue.param.name, data, pathAncestors);
+    }
+    if (!isUndefined(extraInfo)) {
+      setPathInObj(
+        extraInfos,
+        fieldAtomValue.param.name,
+        extraInfo,
+        pathAncestors
+      );
+    }
   }
   return { values, extraInfos };
-}
+};
 
 export function useForm(props: IFormProps) {
   const { initialValues, onError, onSubmit, skipUnregister, validate } = props;
@@ -990,256 +692,241 @@ export function useForm(props: IFormProps) {
   });
   const initValuesVer = useRef(0);
 
-  const handleReset = useRecoilCallback(
-    ({ snapshot, reset }) => () => {
-      const atoms = (snapshot as any).getNodes_UNSTABLE();
-      let atomIt = atoms.next();
-      while (atomIt && !atomIt.done) {
-        const atom = atomIt.value;
-        try {
-          if (isResettableAtom(atom.key)) {
-            reset(atom);
-          }
-        } catch (err) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.error(err);
-          }
-        }
-        atomIt = atoms.next();
+  function resetDataAtoms(
+    reset: (val: RecoilState<any>) => void,
+    get: (val: RecoilValue<any>) => any
+  ) {
+    const formId = getFormId(get);
+    if (formId) {
+      for (const field of Object.values(
+        combinedFieldAtomValues[formId].fields
+      )) {
+        reset(fieldAtomFamily(field.param));
       }
-    },
+      for (const fieldArray of Object.values(
+        combinedFieldAtomValues[formId].fieldArrays
+      )) {
+        reset(fieldAtomFamily(fieldArray.param));
+      }
+      combinedFieldAtomValues[formId].fields = {};
+      combinedFieldAtomValues[formId].fieldArrays = {};
+    }
+  }
+
+  const handleReset = useRecoilTransaction_UNSTABLE(
+    ({ reset, get }) =>
+      (deleteFormId: boolean = false) => {
+        resetDataAtoms(reset, get);
+        if (deleteFormId) {
+          const formId = getFormId(get);
+          delete combinedFieldAtomValues[formId];
+        }
+      },
     []
   );
 
   useEffect(() => {
     return () => {
-      // DEVNOTE: Perhaps we only need this if RecoilRoot is outside the form library
-      handleReset();
+      handleReset(true);
     };
   }, [handleReset]);
 
-  const updateInitialValues = useRecoilCallback(
-    ({ set }) => (values: any, skipUnregister?: boolean, extraInfos?: any) => {
-      // handleReset();
-      initValuesVer.current = initValuesVer.current + 1;
-      set(formInitialValuesAtom, {
-        values,
-        extraInfos: extraInfos || {},
-        version: initValuesVer.current,
-        skipUnregister,
-      });
-      set(formValuesAtom, { values, extraInfos });
-    },
-    [handleReset]
+  const updateInitialValues = useRecoilTransaction_UNSTABLE(
+    ({ set }) =>
+      (
+        values?: any,
+        skipUnregister?: boolean,
+        extraInfos?: any,
+        formId?: string
+      ) => {
+        // if (!skipUnregister) {
+        //   resetDataAtoms(reset, get);
+        // }
+        initValuesVer.current = initValuesVer.current + 1;
+        set(formInitialValuesAtom, (existingVal) =>
+          Object.assign({}, existingVal, {
+            formId: formId ?? existingVal.formId,
+            values: values ?? existingVal.values,
+            extraInfos: extraInfos ?? existingVal.extraInfos,
+            version: initValuesVer.current,
+            skipUnregister: skipUnregister ?? existingVal.skipUnregister,
+          })
+        );
+        set(formValuesAtom, { values, extraInfos });
+      },
+    []
   );
 
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
     if (!initValuesVer.current) {
-      updateInitialValues(initialValues ?? {}, skipUnregister);
+      let formId = generateFormId();
+      while (combinedFieldAtomValues[formId]) {
+        formId = generateFormId();
+      }
+      combinedFieldAtomValues[formId] = { fields: {}, fieldArrays: {} };
+      updateInitialValues(
+        initialValues ?? {},
+        skipUnregister,
+        undefined,
+        formId
+      );
     }
   }, [updateInitialValues, skipUnregister, initialValues]);
 
-  const getValues = useRecoilCallback(
-    ({ snapshot }) => () => {
-      return getFormValues(snapshot).values;
-    },
-    []
-  );
+  const getValuesAndExtraInfo = (get: (val: RecoilValue<any>) => any) =>
+    getFormValues(get);
 
-  const getExtraInfos = useRecoilCallback(
-    ({ snapshot }) => () => {
-      return getFormValues(snapshot).extraInfos;
-    },
-    []
-  );
-
-  const getFieldArrayValue = useRecoilCallback(
-    ({ snapshot }) => (fieldArrayName: string) => {
-      const fieldArrayLoadable = snapshot.getLoadable(
-        fieldArraysAtomFamily(fieldArrayName)
-      );
-      const result: any[] = [];
-      if (fieldArrayLoadable.state === 'hasValue') {
-        const fieldArrayData = fieldArrayLoadable.contents;
-        for (let i = 0; i < fieldArrayData.rowIds.length; i++) {
-          result.push({});
-          const rowId = fieldArrayData.rowIds[i];
-          for (let j = 0; j < fieldArrayData.fieldNames.length; j++) {
-            const fieldArrayFieldName = fieldArrayData.fieldNames[j];
-            const fieldId = getIdForArrayField(
-              fieldArrayName,
-              rowId,
-              fieldArrayFieldName
-            );
-            if (fieldId) {
-              const fieldLoadable = snapshot.getLoadable(
-                fieldsAtomFamily(fieldId)
-              );
-              if (fieldLoadable.state === 'hasValue') {
-                setPathInObj(
-                  result[i],
-                  fieldArrayFieldName,
-                  fieldLoadable.contents?.data
-                );
-              }
-            }
-          }
-        }
-      }
-      return result;
-    },
-    []
-  );
+  const getValues = (get: (val: RecoilValue<any>) => any) =>
+    getFormValues(get).values;
 
   const validateFields = useRecoilCallback(
-    ({ snapshot, set }) => (fieldNames?: string[]) => {
-      const values = getValues();
-      const errors: IFieldError[] = [];
-      if (fieldNames?.length) {
-        for (const fieldName of fieldNames) {
-          const fieldAtom = fieldsAtomFamily(fieldName);
-          const fieldArrayAtom = fieldArraysAtomFamily(fieldName);
-          const fieldLoadable = snapshot.getLoadable(fieldAtom);
-          const fieldArrayLoadable = snapshot.getLoadable(fieldArrayAtom);
-          if (fieldLoadable.state === 'hasValue') {
-            const formFieldData = fieldLoadable.contents;
-            const errorMsg = formFieldData.validate?.(
-              formFieldData.data,
-              values
-            );
-            if (errorMsg) {
-              errors.push({ fieldName, error: errorMsg, type: 'field' });
-            }
-            set(fieldAtom, val =>
-              Object.assign({}, val, { error: errorMsg, touched: true })
-            );
-          } else if (fieldArrayLoadable.state === 'hasValue') {
-            const atomLoadable = snapshot.getLoadable(fieldArrayAtom);
-            if (atomLoadable.state === 'hasValue') {
-              const fieldArrayData = atomLoadable.contents;
-              const result = getFieldArrayValue(fieldName);
-              const errorMsg = fieldArrayData.validate?.(result, values);
+    ({ snapshot, set }) =>
+      (fieldNames?: (string | IFieldAtomSelectorInput)[]) => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        const values = getValues(get);
+        const formId = getFormId(get);
+        const errors: IFieldError[] = [];
+        if (fieldNames?.length) {
+          for (const fieldName of fieldNames) {
+            if (typeof fieldName === 'string' || fieldName.type === 'field') {
+              const name =
+                typeof fieldName === 'string' ? fieldName : fieldName.name;
+              const ancestors =
+                typeof fieldName === 'string' ? [] : fieldName.ancestors;
+              const fieldAtom = fieldAtomFamily({
+                name,
+                type: 'field',
+                ancestors,
+                formId,
+              });
+              const formFieldData = get(fieldAtom) as IFieldAtomValue;
+              const errorMsg = formFieldData.validate?.(
+                formFieldData.data,
+                values
+              );
               if (errorMsg) {
+                set(fieldAtom, (val) =>
+                  Object.assign({}, val, { error: errorMsg, touched: true })
+                );
                 errors.push({
-                  fieldName,
                   error: errorMsg,
-                  type: 'field-array',
+                  ancestors,
+                  name,
+                  type: 'field',
                 });
               }
-              const fieldNamesInArr: string[] = [];
-              for (const rowId of fieldArrayData.rowIds) {
-                for (const fName of fieldArrayData.fieldNames) {
-                  fieldNamesInArr.push(
-                    getIdForArrayField(fieldName, rowId, fName)
-                  );
-                }
+            } else {
+              const { errors: fieldArrayErrors } =
+                getFieldArrayDataAndExtraInfo(fieldName, get, {
+                  isValidation: true,
+                  set,
+                });
+              if (fieldArrayErrors?.length) {
+                errors.push(...fieldArrayErrors);
               }
-              errors.push(...validateFields(fieldNamesInArr));
             }
           }
         }
-      }
-      return errors;
-    },
+        return errors;
+      },
     []
   );
 
   const validateAllFields = useRecoilCallback(
-    ({ snapshot, set }) => (values: any) => {
-      const atoms = (snapshot as any).getNodes_UNSTABLE();
-      const errors: IFieldError[] = [];
-      let formFieldAtomsIt = atoms.next();
-      while (formFieldAtomsIt && !formFieldAtomsIt.done) {
-        const atom = formFieldAtomsIt.value;
-        const fieldName = getNameFromAtomFamilyKey(atom.key);
-        const fieldArrayName = getNameFromFieldArrayAtomFamilyKey(atom.key);
-        if (fieldName) {
-          const atomLoadable = snapshot.getLoadable(atom);
-          if (atomLoadable.state === 'hasValue') {
-            const formFieldData = atomLoadable.contents as IFieldAtomValue;
-            const errorMsg = formFieldData.validate?.(
-              formFieldData.data,
-              values
-            );
-            if (errorMsg) {
-              errors.push({ fieldName, error: errorMsg, type: 'field' });
-            }
-            set(atom, val =>
+    ({ snapshot, set }) =>
+      (values: any, extraInfos: any) => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        const formId = getFormId(get);
+        const errors: IFieldError[] = [];
+        for (const fieldAtomInfo of Object.values(
+          combinedFieldAtomValues[formId].fields
+        )) {
+          const fieldAtom = fieldAtomFamily(fieldAtomInfo.param);
+          const formFieldData = get(fieldAtom) as IFieldAtomValue;
+          const errorMsg = formFieldData.validate?.(formFieldData.data, {
+            values,
+            extraInfos,
+          });
+          if (errorMsg) {
+            set(fieldAtom, (val) =>
               Object.assign({}, val, { error: errorMsg, touched: true })
             );
-          }
-        } else if (fieldArrayName) {
-          const atomLoadable = snapshot.getLoadable(atom);
-          if (atomLoadable.state === 'hasValue') {
-            const fieldArrayData = atomLoadable.contents as IFieldArrayAtomValue;
-            const result = getFieldArrayValue(fieldArrayName);
-            const errorMsg = fieldArrayData.validate?.(result, values);
-            if (errorMsg) {
-              errors.push({
-                fieldName: fieldArrayName,
-                error: errorMsg,
-                type: 'field-array',
-              });
-              set(atom, val => Object.assign({}, val, { error: errorMsg }));
-            } else if (fieldArrayData.error) {
-              set(atom, val => Object.assign({}, val, { error: null }));
-            }
+            errors.push({
+              error: errorMsg,
+              ancestors: fieldAtomInfo.param.ancestors,
+              name: fieldAtomInfo.param.name,
+              type: 'field',
+            });
           }
         }
-        formFieldAtomsIt = atoms.next();
-      }
-      return errors;
-    },
+        for (const fieldArrayAtomInfo of Object.values(
+          combinedFieldAtomValues[formId].fieldArrays
+        )) {
+          const { errors: fieldArrayErrors } = getFieldArrayDataAndExtraInfo(
+            fieldArrayAtomInfo.param,
+            get,
+            {
+              isValidation: true,
+              set,
+              skipFieldCheck: true,
+            }
+          );
+          if (fieldArrayErrors?.length) {
+            errors.push(...fieldArrayErrors);
+          }
+        }
+        return errors;
+      },
     []
   );
 
-  const handleSubmit = useCallback(
-    (e?: React.FormEvent<HTMLFormElement>) => {
-      if (e && e.preventDefault) {
-        e.preventDefault();
-      }
-      if (e && e.stopPropagation) {
-        e.stopPropagation();
-      }
-      const values = getValues();
-      const extraInfos = getExtraInfos();
-      const errors = validateAllFields(values);
-      const formErrors = validate?.(values);
-      if (errors.length || formErrors?.length) {
-        if (onError) {
-          onError(errors, formErrors, values);
+  const handleSubmit = useRecoilCallback(
+    ({ snapshot }) =>
+      (e?: React.FormEvent<HTMLFormElement>) => {
+        if (e && e.preventDefault) {
+          e.preventDefault();
         }
-        return;
-      }
-      setFormState({ isSubmitting: true });
-      const res = onSubmit?.(values, extraInfos);
-      if (res && res.then) {
-        return res
-          .then(() => {
-            // Make initial values same as final values in order to set isDirty as false after submit
-            updateInitialValues(values, skipUnregister, extraInfos);
-          })
-          .catch((err: any) => {
-            console.warn(
-              `Warning: An unhandled error was caught from onSubmit()`,
-              err
-            );
-          })
-          .finally(() => {
-            setFormState({ isSubmitting: false });
-          });
-      } else {
-        // DEVNOTE: Not resetting here and instead relying on the form component to be unmounted for reset
-        // handleReset()
-        setFormState({ isSubmitting: false });
-        updateInitialValues(values, skipUnregister);
-      }
-      return res;
-    },
+        if (e && e.stopPropagation) {
+          e.stopPropagation();
+        }
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        const { values, extraInfos } = getValuesAndExtraInfo(get);
+        const errors = validateAllFields(values, extraInfos);
+        const formErrors = validate?.(values);
+        if (errors.length || formErrors?.length) {
+          if (onError) {
+            onError(errors, formErrors, values);
+          }
+          return;
+        }
+        setFormState({ isSubmitting: true });
+        const res = onSubmit?.(values, extraInfos);
+        if (res && res.then) {
+          return res
+            .then(() => {
+              // Make initial values same as final values in order to set isDirty as false after submit
+              updateInitialValues(values, skipUnregister, extraInfos);
+            })
+            .catch((err: any) => {
+              console.warn(
+                `Warning: An unhandled error was caught from onSubmit()`,
+                err
+              );
+            })
+            .finally(() => {
+              setFormState({ isSubmitting: false });
+            });
+        } else {
+          setFormState({ isSubmitting: false });
+          updateInitialValues(values, skipUnregister, extraInfos);
+        }
+        return res;
+      },
     [
-      getValues,
-      getExtraInfos,
       validateAllFields,
       onSubmit,
       onError,
@@ -1286,11 +973,11 @@ export function FormProvider(props: {
   );
 }
 
-export const withFormProvider = (
-  Component: any,
-  options?: FormProviderOptions
-) => ({ ...props }) => (
-  <FormProvider options={options}>
-    <Component {...props} />
-  </FormProvider>
-);
+export const withFormProvider =
+  (Component: any, options?: FormProviderOptions) =>
+  ({ ...props }) =>
+    (
+      <FormProvider options={options}>
+        <Component {...props} />
+      </FormProvider>
+    );
