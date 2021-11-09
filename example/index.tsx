@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { useFormValues, useIsDirty } from '../src';
 import ExtraInfoForm from './forms/FileUploadForm';
+import FormContext from './forms/FormContext';
 import MultipleSimpleForms from './forms/MultipleSimpleForms';
 import MultiStepForm from './forms/MultiStepForm';
 import SimpleFieldArray from './forms/SimpleFieldArray';
@@ -33,6 +34,11 @@ const formExamples = [
     id: 'file-extra-info',
     title: 'File Upload (using extra info)',
     getComponent: props => <ExtraInfoForm {...props} />,
+  },
+  {
+    id: 'form-context',
+    title: 'Form Context',
+    getComponent: props => <FormContext {...props} />,
   },
 ];
 

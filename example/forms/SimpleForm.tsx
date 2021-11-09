@@ -12,7 +12,7 @@ function SimpleForm(props) {
   return (
     <React.Fragment>
       <form onSubmit={handleSubmit}>
-        <InputField name="name" type="text" />
+        <InputField name="name" type="text" disabled={true}/>
         <InputField name="email" type="text" depFields={['name']} validate={(value, otherValues) => {
           return !otherValues.values?.name ? 'Name has to be present': null
         }}/>

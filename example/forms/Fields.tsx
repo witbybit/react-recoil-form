@@ -10,12 +10,15 @@ interface IFileType {
   type: string;
 }
 
-interface InputFieldProps {
+export interface InputFieldProps {
   type: 'number' | 'text' | 'date';
   ancestors?: { name: string; rowId: number }[];
   name: string;
+  label?: string;
   validate?: (value: any, otherParams: any) => string | null;
   depFields?: string[];
+  disabled?: boolean;
+  onChange?: (value: any) => void;
 }
 
 export function FileField(props: FileFieldProps) {
@@ -55,11 +58,12 @@ export function InputField(props: InputFieldProps) {
   });
   return (
     <div>
-      <label htmlFor={props.name}>{props.name}</label>
+      <label htmlFor={props.name}>{props.label ?? props.name}</label>
       <input
         id={props.name}
         type={props.type}
         name={props.name}
+        disabled={props.disabled}
         onChange={(evt) => {
           if (props.type === 'number') {
             try {
@@ -69,6 +73,7 @@ export function InputField(props: InputFieldProps) {
           } else {
             field.setFieldValue(evt.target.value);
           }
+          props.onChange?.(evt.target.value);
         }}
         value={field.fieldValue ?? ''}
         onBlur={field.onBlur}

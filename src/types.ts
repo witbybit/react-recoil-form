@@ -102,8 +102,10 @@ export interface IFieldArrayRowInput extends IFieldAtomInput {
   rowId: number;
 }
 
-export interface IFormContextFieldInput extends IFieldAtomInput {
+export interface IFormContextFieldInput {
   type: IFieldType;
+  ancestors?: IAncestorInput[];
+  name: string;
 }
 
 export type IFieldAtomSelectorInput = {

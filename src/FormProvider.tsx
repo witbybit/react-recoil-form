@@ -258,20 +258,26 @@ export function useFormContext() {
         const get = snapshotToGet(snapshot);
         const formId = getFormId(get);
         const newAtomData = {} as Partial<IFieldAtomValue>;
-        if (newValue.value) {
+        if (newValue.value !== undefined) {
           newAtomData.data = newValue.value;
         }
-        if (newValue.extraInfo) {
+        if (newValue.extraInfo !== undefined) {
           newAtomData.extraInfo = newValue.extraInfo;
         }
         if (key.type === 'field') {
-          set(fieldAtomFamily({ ...key, formId }), (atomValue) =>
-            Object.assign({}, atomValue, newAtomData)
+          set(
+            fieldAtomFamily({
+              ancestors: key.ancestors ?? [],
+              name: key.name,
+              type: key.type,
+              formId,
+            }),
+            (atomValue) => Object.assign({}, atomValue, newAtomData)
           );
         } else if (key.type === 'field-array') {
           setFieldArrayDataAndExtraInfo(
             {
-              ancestors: key.ancestors,
+              ancestors: key.ancestors ?? [],
               name: key.name,
             },
             {
@@ -294,13 +300,18 @@ export function useFormContext() {
         const formId = getFormId(get);
         if (key.type === 'field') {
           const fieldAtom = get(
-            fieldAtomFamily({ ...key, formId })
+            fieldAtomFamily({
+              ancestors: key.ancestors ?? [],
+              name: key.name,
+              type: key.type,
+              formId,
+            })
           ) as IFieldAtomValue;
           return { value: fieldAtom.data, extraInfo: fieldAtom.extraInfo };
         } else if (key.type === 'field-array') {
           const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
             {
-              ancestors: key.ancestors,
+              ancestors: key.ancestors ?? [],
               name: key.name,
             },
             get
@@ -706,18 +717,23 @@ export function useForm(props: IFormProps) {
   ) {
     const formId = getFormId(get);
     if (formId) {
-      for (const field of Object.values(
-        combinedFieldAtomValues[formId].fields
-      )) {
-        reset(fieldAtomFamily(field.param));
+      if (combinedFieldAtomValues?.[formId]?.fields) {
+        for (const field of Object.values(
+          combinedFieldAtomValues[formId]?.fields ?? {}
+        )) {
+          reset(fieldAtomFamily(field.param));
+        }
+        combinedFieldAtomValues[formId].fields = {};
       }
-      for (const fieldArray of Object.values(
-        combinedFieldAtomValues[formId].fieldArrays
-      )) {
-        reset(fieldAtomFamily(fieldArray.param));
+
+      if (combinedFieldAtomValues?.[formId]?.fieldArrays) {
+        for (const fieldArray of Object.values(
+          combinedFieldAtomValues[formId]?.fieldArrays ?? {}
+        )) {
+          reset(fieldAtomFamily(fieldArray.param));
+        }
+        combinedFieldAtomValues[formId].fieldArrays = {};
       }
-      combinedFieldAtomValues[formId].fields = {};
-      combinedFieldAtomValues[formId].fieldArrays = {};
     }
   }
 
