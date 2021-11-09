@@ -680,10 +680,6 @@ const getFormValues = (get: (val: RecoilValue<any>) => any) => {
               (rid) => ancestors[i].rowId === rid
             ),
           });
-        } else {
-          throw new Error(
-            `Field array '${ancestors[i].name}' in the ancestors of field ${fieldAtomValue.param.name} was not found`
-          );
         }
       }
     }
