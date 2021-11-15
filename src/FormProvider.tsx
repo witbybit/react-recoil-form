@@ -619,7 +619,7 @@ export function useFieldArray(props: IFieldArrayProps) {
     removeAll,
     getFieldArrayValue,
     setFieldArrayValue,
-    error: null,
+    error: fieldArrayProps?.error,
   };
 }
 
