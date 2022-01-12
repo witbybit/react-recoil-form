@@ -1,17 +1,17 @@
 .wrapper {
-    display: grid;
-    grid-template-columns: minmax(150px, 25%) 2fr 1fr;
-    gap: 10px;
-  }
+	display: grid;
+	grid-template-columns: minmax(150px, 25%) 2fr 1fr;
+	gap: 10px;
+}
 
 .left-nav {
 }
 
 .left-nav-item {
-    margin-top: 5px;
-    margin-bottom: 5px;
-    cursor: pointer;
-    color: blue;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	cursor: pointer;
+	color: blue;
 }
 
 .form-panel {
