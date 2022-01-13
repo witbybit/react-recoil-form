@@ -342,7 +342,20 @@ export function useFormContext() {
     []
   );
 
-  return { getValue, setValue, getValues };
+  const checkIsDirty = useRecoilCallback<any, any>(
+    ({ snapshot }) =>
+      (options?: IIsDirtyProps) => {
+        const get = snapshotToGet(snapshot);
+        const formValues = getFormValues(get);
+        const initialValues = get(formInitialValuesAtom);
+        const updatedFormValues = options?.preCompareUpdateFormValues
+          ? options.preCompareUpdateFormValues(formValues)
+          : formValues;
+        return !isDeepEqual(initialValues, updatedFormValues);
+      }
+  );
+
+  return { getValue, setValue, getValues, checkIsDirty };
 }
 
 export function useFieldArray(props: IFieldArrayProps) {
