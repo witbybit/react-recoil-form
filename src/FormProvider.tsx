@@ -39,9 +39,16 @@ import {
   IFieldProps,
   IFieldWatchParams,
   IFormContextFieldInput,
+  IIsDirtyProps,
   InitialValues,
 } from './types';
-import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
+import {
+  getPathInObj,
+  setPathInObj,
+  isDeepEqual,
+  isUndefined,
+  cloneDeep,
+} from './utils';
 
 function FormValuesObserver() {
   const setFormValues = useSetRecoilState(formValuesAtom);
@@ -237,10 +244,13 @@ export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
   return { values, extraInfos };
 }
 
-export function useIsDirty() {
+export function useIsDirty(options?: IIsDirtyProps) {
   const { values: formValues } = useRecoilValue(formValuesAtom);
   const { values: initialValues } = useRecoilValue(formInitialValuesAtom);
-  return !isDeepEqual(initialValues, formValues);
+  const updatedFormValues = options?.preCompareUpdateFormValues
+    ? options.preCompareUpdateFormValues(cloneDeep(formValues))
+    : formValues;
+  return !isDeepEqual(initialValues, updatedFormValues);
 }
 
 export function useFormValues() {
@@ -777,6 +787,10 @@ export function useForm(props: IFormProps) {
     []
   );
 
+  const resetInitialValues = useCallback((values?: any, extraInfos?: any) => {
+    updateInitialValues(values, undefined, extraInfos, undefined);
+  }, []);
+
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
     if (!initValuesVer.current) {
@@ -960,7 +974,7 @@ export function useForm(props: IFormProps) {
     handleSubmit,
     formState,
     handleReset,
-    resetInitialValues: updateInitialValues,
+    resetInitialValues,
     validateFields,
   };
 }

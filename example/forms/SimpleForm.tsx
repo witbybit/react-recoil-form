@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../src';
-import { InputField } from './Fields';
+import { InputField } from './components/Fields';
 import { Results } from '../';
 
 function SimpleForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
-    initialValues: props.initialValues ?? {name: "Abc"}
+    initialValues: props.initialValues ?? {name: "Abc", email: ''}
   });
   return (
     <React.Fragment>

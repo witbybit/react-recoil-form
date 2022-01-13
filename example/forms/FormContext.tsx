@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useForm, useFormContext, withFormProvider } from '../../src';
-import { InputField, InputFieldProps } from './Fields';
+import { InputField, InputFieldProps } from './components/Fields';
 import { Results } from '../';
 
 function FormContext(props) {

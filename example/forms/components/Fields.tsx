@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useField, useFieldArray, useFieldArrayColumnWatch } from '../../src';
+import { useField, useFieldArray, useFieldArrayColumnWatch } from '../../../src';
 
 interface FileFieldProps {
   name: string;

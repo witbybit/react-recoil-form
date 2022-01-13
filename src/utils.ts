@@ -53,8 +53,12 @@ export function setPathInObj(
 }
 
 // Taken from https://dev.to/sanderdebr/deep-equality-checking-of-objects-in-vanilla-javascript-5592
-export function isDeepEqual(obj1: any, obj2: any) {
-  if (obj1 === obj2) return true;
+export function isDeepEqual(
+  obj1: any,
+  obj2: any,
+  eq?: (a: any, b: any) => boolean
+) {
+  if ((eq && eq(obj1, obj2)) || obj1 === obj2) return true;
 
   if (
     typeof obj1 !== 'object' ||
