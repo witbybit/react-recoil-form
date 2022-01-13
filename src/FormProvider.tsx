@@ -346,11 +346,11 @@ export function useFormContext() {
     ({ snapshot }) =>
       (options?: IIsDirtyProps) => {
         const get = snapshotToGet(snapshot);
-        const formValues = getFormValues(get);
-        const initialValues = get(formInitialValuesAtom);
+        const { values } = getFormValues(get);
+        const initialValues = get(formInitialValuesAtom)?.values;
         const updatedFormValues = options?.preCompareUpdateFormValues
-          ? options.preCompareUpdateFormValues(formValues)
-          : formValues;
+          ? options.preCompareUpdateFormValues(values)
+          : values;
         return !isDeepEqual(initialValues, updatedFormValues);
       }
   );
@@ -775,7 +775,7 @@ export function useForm(props: IFormProps) {
   }, [handleReset]);
 
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
-    ({ set }) =>
+    ({ set, get }) =>
       (
         values?: any,
         skipUnregister?: boolean,
@@ -786,16 +786,19 @@ export function useForm(props: IFormProps) {
         //   resetDataAtoms(reset, get);
         // }
         initValuesVer.current = initValuesVer.current + 1;
-        set(formInitialValuesAtom, (existingVal) =>
+        const existingVal = get(formInitialValuesAtom);
+        const newValues = values ?? existingVal.values;
+        const newExtraInfos = extraInfos ?? existingVal.extraInfos;
+        set(formInitialValuesAtom, () =>
           Object.assign({}, existingVal, {
             formId: formId ?? existingVal.formId,
-            values: values ?? existingVal.values,
-            extraInfos: extraInfos ?? existingVal.extraInfos,
+            values: newValues,
+            extraInfos: newExtraInfos,
             version: initValuesVer.current,
             skipUnregister: skipUnregister ?? existingVal.skipUnregister,
           })
         );
-        set(formValuesAtom, { values, extraInfos });
+        set(formValuesAtom, { values: newValues, extraInfos: newExtraInfos });
       },
     []
   );
