@@ -667,9 +667,13 @@ interface IFormProps {
 }
 
 const getFormValues = (get: (val: RecoilValue<any>) => any) => {
-  const values: any = {};
-  const extraInfos: any = {};
   const initialValues = get(formInitialValuesAtom) as InitialValues;
+  const values: any = initialValues.values
+    ? cloneDeep(initialValues.values)
+    : {};
+  const extraInfos: any = initialValues.extraInfos
+    ? cloneDeep(initialValues.extraInfos)
+    : {};
   const formId = initialValues.formId;
   const fieldArrays = combinedFieldAtomValues[formId]
     ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
@@ -775,21 +779,20 @@ export function useForm(props: IFormProps) {
   }, [handleReset]);
 
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
-    ({ set, get }) =>
+    ({ set, get, reset }) =>
       (
         values?: any,
         skipUnregister?: boolean,
         extraInfos?: any,
         formId?: string
       ) => {
-        // if (!skipUnregister) {
-        //   resetDataAtoms(reset, get);
-        // }
+        resetDataAtoms(reset, get);
         initValuesVer.current = initValuesVer.current + 1;
         const existingVal = get(formInitialValuesAtom);
         const newValues = values ?? existingVal.values;
         const newExtraInfos = extraInfos ?? existingVal.extraInfos;
-        set(formInitialValuesAtom, () =>
+        set(
+          formInitialValuesAtom,
           Object.assign({}, existingVal, {
             formId: formId ?? existingVal.formId,
             values: newValues,
