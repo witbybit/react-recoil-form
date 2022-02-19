@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { useFormValues, useIsDirty } from '../src';
+import DirtyCheckForm from './forms/DirtyCheckForm';
 import ExtraInfoForm from './forms/FileUploadForm';
 import FormContext from './forms/FormContext';
 import MultipleSimpleForms from './forms/MultipleSimpleForms';
@@ -13,32 +14,37 @@ const formExamples = [
   {
     id: 'simple-form',
     title: 'Simple Form',
-    getComponent: props => <SimpleForm {...props} />,
+    getComponent: (props) => <SimpleForm {...props} />,
   },
   {
     id: 'multiple-simple-forms',
     title: 'Multiple Simple Forms',
-    getComponent: props => <MultipleSimpleForms {...props} />,
+    getComponent: (props) => <MultipleSimpleForms {...props} />,
   },
   {
     id: 'simple-field-array',
     title: 'Simple Field Array',
-    getComponent: props => <SimpleFieldArray {...props} />,
+    getComponent: (props) => <SimpleFieldArray {...props} />,
   },
   {
     id: 'multi-step-form',
     title: 'Multi Step Form',
-    getComponent: props => <MultiStepForm {...props} />,
+    getComponent: (props) => <MultiStepForm {...props} />,
   },
   {
     id: 'file-extra-info',
     title: 'File Upload (using extra info)',
-    getComponent: props => <ExtraInfoForm {...props} />,
+    getComponent: (props) => <ExtraInfoForm {...props} />,
   },
   {
     id: 'form-context',
     title: 'Form Context',
-    getComponent: props => <FormContext {...props} />,
+    getComponent: (props) => <FormContext {...props} />,
+  },
+  {
+    id: 'check-is-dirty',
+    title: 'Is Dirty Prop',
+    getComponent: (props) => <DirtyCheckForm {...props} />,
   },
 ];
 
@@ -65,7 +71,7 @@ function App() {
   return (
     <div className="wrapper">
       <div className="left-nav">
-        {formExamples.map(f => {
+        {formExamples.map((f) => {
           return (
             <div
               key={f.id}
@@ -80,11 +86,15 @@ function App() {
         })}
       </div>
       <div className="form-panel">
-        {formExamples.find(f => f.id === formId)?.getComponent({ onSubmit, onError })}
+        {formExamples
+          .find((f) => f.id === formId)
+          ?.getComponent({ onSubmit, onError })}
       </div>
       <div className="result">
-        <div>Submitted values: {JSON.stringify(result, null, 2)}</div><br/>
-        <div>Submitted extra info: {JSON.stringify(extraInfo, null, 2)}</div><br/>
+        <div>Submitted values: {JSON.stringify(result, null, 2)}</div>
+        <br />
+        <div>Submitted extra info: {JSON.stringify(extraInfo, null, 2)}</div>
+        <br />
         <div>{`Submission Time: ${time || ''}`}</div>
       </div>
     </div>
@@ -96,9 +106,9 @@ export function Results() {
   const isDirty = useIsDirty();
   return (
     <React.Fragment>
-      <br/>
+      <br />
       <div>{`Real time values = ${JSON.stringify(values, null, 2)}`}</div>
-      <br/>
+      <br />
       <div>{`isDirty = ${isDirty}`}</div>
     </React.Fragment>
   );

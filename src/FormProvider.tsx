@@ -39,9 +39,16 @@ import {
   IFieldProps,
   IFieldWatchParams,
   IFormContextFieldInput,
+  IIsDirtyProps,
   InitialValues,
 } from './types';
-import { getPathInObj, setPathInObj, isDeepEqual, isUndefined } from './utils';
+import {
+  getPathInObj,
+  setPathInObj,
+  isDeepEqual,
+  isUndefined,
+  cloneDeep,
+} from './utils';
 
 function FormValuesObserver() {
   const setFormValues = useSetRecoilState(formValuesAtom);
@@ -237,10 +244,13 @@ export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
   return { values, extraInfos };
 }
 
-export function useIsDirty() {
+export function useIsDirty(options?: IIsDirtyProps) {
   const { values: formValues } = useRecoilValue(formValuesAtom);
   const { values: initialValues } = useRecoilValue(formInitialValuesAtom);
-  return !isDeepEqual(initialValues, formValues);
+  const updatedFormValues = options?.preCompareUpdateFormValues
+    ? options.preCompareUpdateFormValues(cloneDeep(formValues))
+    : formValues;
+  return !isDeepEqual(initialValues, updatedFormValues);
 }
 
 export function useFormValues() {
@@ -332,7 +342,20 @@ export function useFormContext() {
     []
   );
 
-  return { getValue, setValue, getValues };
+  const checkIsDirty = useRecoilCallback<any, any>(
+    ({ snapshot }) =>
+      (options?: IIsDirtyProps) => {
+        const get = snapshotToGet(snapshot);
+        const { values } = getFormValues(get);
+        const initialValues = get(formInitialValuesAtom)?.values;
+        const updatedFormValues = options?.preCompareUpdateFormValues
+          ? options.preCompareUpdateFormValues(values)
+          : values;
+        return !isDeepEqual(initialValues, updatedFormValues);
+      }
+  );
+
+  return { getValue, setValue, getValues, checkIsDirty };
 }
 
 export function useFieldArray(props: IFieldArrayProps) {
@@ -644,9 +667,13 @@ interface IFormProps {
 }
 
 const getFormValues = (get: (val: RecoilValue<any>) => any) => {
-  const values: any = {};
-  const extraInfos: any = {};
   const initialValues = get(formInitialValuesAtom) as InitialValues;
+  const values: any = initialValues.values
+    ? cloneDeep(initialValues.values)
+    : {};
+  const extraInfos: any = initialValues.extraInfos
+    ? cloneDeep(initialValues.extraInfos)
+    : {};
   const formId = initialValues.formId;
   const fieldArrays = combinedFieldAtomValues[formId]
     ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
@@ -752,30 +779,36 @@ export function useForm(props: IFormProps) {
   }, [handleReset]);
 
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
-    ({ set }) =>
+    ({ set, get, reset }) =>
       (
         values?: any,
         skipUnregister?: boolean,
         extraInfos?: any,
         formId?: string
       ) => {
-        // if (!skipUnregister) {
-        //   resetDataAtoms(reset, get);
-        // }
+        resetDataAtoms(reset, get);
         initValuesVer.current = initValuesVer.current + 1;
-        set(formInitialValuesAtom, (existingVal) =>
+        const existingVal = get(formInitialValuesAtom);
+        const newValues = values ?? existingVal.values;
+        const newExtraInfos = extraInfos ?? existingVal.extraInfos;
+        set(
+          formInitialValuesAtom,
           Object.assign({}, existingVal, {
             formId: formId ?? existingVal.formId,
-            values: values ?? existingVal.values,
-            extraInfos: extraInfos ?? existingVal.extraInfos,
+            values: newValues,
+            extraInfos: newExtraInfos,
             version: initValuesVer.current,
             skipUnregister: skipUnregister ?? existingVal.skipUnregister,
           })
         );
-        set(formValuesAtom, { values, extraInfos });
+        set(formValuesAtom, { values: newValues, extraInfos: newExtraInfos });
       },
     []
   );
+
+  const resetInitialValues = useCallback((values?: any, extraInfos?: any) => {
+    updateInitialValues(values, undefined, extraInfos, undefined);
+  }, []);
 
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
@@ -960,7 +993,7 @@ export function useForm(props: IFormProps) {
     handleSubmit,
     formState,
     handleReset,
-    resetInitialValues: updateInitialValues,
+    resetInitialValues,
     validateFields,
   };
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Results } from '..';
 import { useForm, withFormProvider } from '../../src';
-import { InputField, TableField, WatchField } from './Fields';
+import { InputField, TableField, WatchField } from './components/Fields';
 
 function SimpleFieldArray(props) {
   const { handleSubmit, resetInitialValues } = useForm({

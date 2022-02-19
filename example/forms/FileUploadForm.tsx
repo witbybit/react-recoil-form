@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../src';
-import { FileField, InputField } from './Fields';
+import { FileField, InputField } from './components/Fields';
 import { Results } from '..';
 
 function ExtraInfoForm(props) {

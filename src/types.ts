@@ -121,3 +121,7 @@ export interface IFieldError {
   type: IFieldType;
   error: string;
 }
+
+export interface IIsDirtyProps {
+  preCompareUpdateFormValues?: (formValues: any) => any;
+}
