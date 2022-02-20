@@ -97,6 +97,16 @@ export function isDeepEqual(
   return result;
 }
 
+function fromEntries(iterable: any[]) {
+  if ('fromEntries' in Object) {
+    return Object.fromEntries(iterable);
+  }
+  return [...iterable].reduce((obj, [key, val]) => {
+    obj[key] = val;
+    return obj;
+  }, {});
+}
+
 export function cloneDeep(src: any): any {
   if (Array.isArray(src)) {
     return src.map(cloneDeep);
@@ -105,7 +115,7 @@ export function cloneDeep(src: any): any {
   if (src === null || typeof src !== 'object' || src instanceof File) {
     return src;
   }
-  return Object.fromEntries(
+  return fromEntries(
     Object.entries(src).map(([key, val]) => [key, cloneDeep(val)])
   );
 }
