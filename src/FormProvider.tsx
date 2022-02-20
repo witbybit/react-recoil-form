@@ -806,9 +806,12 @@ export function useForm(props: IFormProps) {
     []
   );
 
-  const resetInitialValues = useCallback((values?: any, extraInfos?: any) => {
-    updateInitialValues(values, undefined, extraInfos, undefined);
-  }, []);
+  const resetInitialValues = useCallback(
+    (values?: any, extraInfos?: any) => {
+      updateInitialValues(values, undefined, extraInfos, undefined);
+    },
+    [updateInitialValues]
+  );
 
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
@@ -963,15 +966,14 @@ export function useForm(props: IFormProps) {
             .then(() => {
               // Make initial values same as final values in order to set isDirty as false after submit
               updateInitialValues(values, skipUnregister, extraInfos);
+              setFormState({ isSubmitting: false });
             })
             .catch((err: any) => {
+              setFormState({ isSubmitting: false });
               console.warn(
                 `Warning: An unhandled error was caught from onSubmit()`,
                 err
               );
-            })
-            .finally(() => {
-              setFormState({ isSubmitting: false });
             });
         } else {
           setFormState({ isSubmitting: false });
