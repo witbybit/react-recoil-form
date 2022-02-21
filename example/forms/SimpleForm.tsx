@@ -7,6 +7,7 @@ function SimpleForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
+    reinitializeOnSubmit: true,
     initialValues: props.initialValues ?? {name: "Abc", email: ''}
   });
   return (

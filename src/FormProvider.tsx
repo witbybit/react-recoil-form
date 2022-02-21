@@ -664,6 +664,11 @@ interface IFormProps {
    * By default, this is false
    */
   skipUnregister?: boolean;
+  /**
+   * Reinitialize the form after submit back to the specified initial or empty values.
+   * E.g. After changing password, you want to clear all the input fields
+   */
+  reinitializeOnSubmit?: boolean;
 }
 
 const getFormValues = (get: (val: RecoilValue<any>) => any) => {
@@ -965,7 +970,11 @@ export function useForm(props: IFormProps) {
           return res
             .then(() => {
               // Make initial values same as final values in order to set isDirty as false after submit
-              updateInitialValues(values, skipUnregister, extraInfos);
+              updateInitialValues(
+                props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+                skipUnregister,
+                props?.reinitializeOnSubmit ? {} : extraInfos
+              );
               setFormState({ isSubmitting: false });
             })
             .catch((err: any) => {
@@ -977,7 +986,11 @@ export function useForm(props: IFormProps) {
             });
         } else {
           setFormState({ isSubmitting: false });
-          updateInitialValues(values, skipUnregister, extraInfos);
+          updateInitialValues(
+            props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+            skipUnregister,
+            props?.reinitializeOnSubmit ? {} : extraInfos
+          );
         }
         return res;
       },
