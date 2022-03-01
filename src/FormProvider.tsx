@@ -683,6 +683,13 @@ const getFormValues = (get: (val: RecoilValue<any>) => any) => {
   const fieldArrays = combinedFieldAtomValues[formId]
     ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
     : [];
+  // Don't preserve initial values for top level field arrays.
+  // One problem with preserving initial values here is that removed rows come back.
+  for (const fieldArray of fieldArrays) {
+    if (!fieldArray.param.ancestors?.length) {
+      setPathInObj(values, fieldArray.param.name, undefined);
+    }
+  }
   const fields = combinedFieldAtomValues[formId]
     ? Object.values(combinedFieldAtomValues[formId].fields)
     : [];

@@ -1,6 +1,18 @@
 import 'core-js/features/string/virtual/match-all';
 
-export function getPathInObj(obj: any, path: string, defaultValue = undefined) {
+export function getPathInObj(
+  obj: any,
+  path: string,
+  defaultValue = undefined,
+  ancestors: { name: string; index: number }[] = []
+) {
+  if (ancestors?.length) {
+    let prefix = '';
+    for (const ancestor of ancestors) {
+      prefix = prefix + `${ancestor.name}[${ancestor.index}].`;
+    }
+    path = prefix + path;
+  }
   const travel = (regexp: RegExp) =>
     String.prototype.split
       .call(path, regexp)
