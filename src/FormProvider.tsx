@@ -845,15 +845,12 @@ export function useForm(props: IFormProps) {
   const getValuesAndExtraInfo = (get: (val: RecoilValue<any>) => any) =>
     getFormValues(get);
 
-  const getValues = (get: (val: RecoilValue<any>) => any) =>
-    getFormValues(get).values;
-
   const validateFields = useRecoilCallback(
     ({ snapshot, set }) =>
       (fieldNames?: (string | IFieldAtomSelectorInput)[]) => {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
-        const values = getValues(get);
+        const extValues = getValuesAndExtraInfo(get);
         const formId = getFormId(get);
         const errors: IFieldError[] = [];
         if (fieldNames?.length) {
@@ -872,7 +869,7 @@ export function useForm(props: IFormProps) {
               const formFieldData = get(fieldAtom) as IFieldAtomValue;
               const errorMsg = formFieldData.validate?.(
                 formFieldData.data,
-                values
+                extValues
               );
               if (errorMsg) {
                 set(fieldAtom, (val) =>

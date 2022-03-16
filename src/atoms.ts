@@ -73,6 +73,8 @@ export const fieldAtomFamily = atomFamily<
       type: 'field-array',
     } as IFieldArrayAtomValue;
   },
+  // TODO: Rename to effects for recoil 0.6
+  // effects_UNSTABLE is still supported and will allow older versions of recoil to work
   effects_UNSTABLE: (param) => [
     ({ onSet, node }) => {
       onSet((newValue) => {
