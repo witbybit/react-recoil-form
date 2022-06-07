@@ -188,7 +188,7 @@ export function getFieldArrayDataAndExtraInfo(
   // relative ancestors are from the point of view of the root field array where getValue() was called
   relativeAncestors?: IAncestorInput[]
 ): {
-  data: any;
+  data: any[];
   extraInfo: any;
   errors?: IFieldError[];
 } {
@@ -506,7 +506,7 @@ export function setFieldArrayDataAndExtraInfo(
  * This method won't work correctly if the referenced field doesn't have data (i.e. is a field array)
  */
 export const fieldArrayColAtomValueSelectorFamily = selectorFamily<
-  { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
+  { values: any[]; extraInfos: any[] },
   {
     ancestors?: { name: string; rowId: number }[];
     fieldArrayName: string;

@@ -262,7 +262,7 @@ export function useFormContext() {
   const setValue = useRecoilCallback(
     ({ set, snapshot, reset }) =>
       (
-        key: IFormContextFieldInput,
+        key: string | IFormContextFieldInput,
         newValue: { value?: any; extraInfo?: any }
       ) => {
         const get = snapshotToGet(snapshot);
@@ -274,21 +274,25 @@ export function useFormContext() {
         if (newValue.extraInfo !== undefined) {
           newAtomData.extraInfo = newValue.extraInfo;
         }
-        if (key.type === 'field') {
+        const fieldKey: IFormContextFieldInput =
+          typeof key === 'string'
+            ? { type: 'field', name: key, ancestors: [] }
+            : key;
+        if (fieldKey.type === 'field') {
           set(
             fieldAtomFamily({
-              ancestors: key.ancestors ?? [],
-              name: key.name,
-              type: key.type,
+              ancestors: fieldKey.ancestors ?? [],
+              name: fieldKey.name,
+              type: fieldKey.type,
               formId,
             }),
             (atomValue) => Object.assign({}, atomValue, newAtomData)
           );
-        } else if (key.type === 'field-array') {
+        } else if (fieldKey.type === 'field-array') {
           setFieldArrayDataAndExtraInfo(
             {
-              ancestors: key.ancestors ?? [],
-              name: key.name,
+              ancestors: fieldKey.ancestors ?? [],
+              name: fieldKey.name,
             },
             {
               get,
@@ -367,8 +371,10 @@ export function useFieldArray(props: IFieldArrayProps) {
     ancestors,
     defaultValue,
   } = props;
+
   const initialValues = useRecoilValue(formInitialValuesAtom);
-  const fieldArrayProps = useRecoilValue(
+  const prevFieldArrayValues = useRef<any>(null);
+  const [fieldArrayProps, setFieldArrayProps] = useRecoilState(
     fieldAtomFamily({
       name,
       ancestors: ancestors ?? [],
@@ -376,7 +382,12 @@ export function useFieldArray(props: IFieldArrayProps) {
       formId: initialValues.formId,
     }) as RecoilState<IFieldArrayAtomValue>
   );
-
+  const fieldArrayValueForValidation = useFieldArrayColumnWatch({
+    fieldArrayName: name,
+    ancestors: ancestors ?? [],
+    // undefined means all fields
+    fieldNames: validate ? undefined : [],
+  });
   // const otherParams = useMultipleWatch({ names: depFields ?? [] })
 
   const setFieldArrayValue = useRecoilTransaction_UNSTABLE(
@@ -411,6 +422,18 @@ export function useFieldArray(props: IFieldArrayProps) {
       },
     [name, fieldArrayProps]
   );
+
+  useEffect(() => {
+    if (
+      validate &&
+      !isDeepEqual(fieldArrayValueForValidation, prevFieldArrayValues.current)
+    ) {
+      prevFieldArrayValues.current = fieldArrayValueForValidation;
+      const error = validate(fieldArrayValueForValidation?.values ?? []);
+      setFieldArrayProps((d) => Object.assign({}, d, { error }));
+    }
+    console.log('field array values = ', fieldArrayValueForValidation);
+  }, [fieldArrayValueForValidation, setFieldArrayProps, validate]);
 
   const getFieldArrayValue = useRecoilCallback(
     ({ snapshot }) =>

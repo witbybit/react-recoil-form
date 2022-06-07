@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { useField, useFieldArray, useFieldArrayColumnWatch } from '../../../src';
+import {
+  useField,
+  useFieldArray,
+  useFieldArrayColumnWatch,
+} from '../../../src';
 
 interface FileFieldProps {
   name: string;
@@ -92,6 +96,9 @@ export function TableField(props: TableFieldProps) {
   const tableField = useFieldArray({
     fieldNames: props.fields.map((f) => f.name),
     name: props.name,
+    // If validate function is removed, only the particular field inside field array will render
+    // For real-time validation, we need to listen to all fields inside the field array to pass data to validate function.
+    validate: (value) => (!value?.length ? 'Need at least one row' : undefined),
   });
 
   return (
@@ -130,6 +137,9 @@ export function TableField(props: TableFieldProps) {
       <button type="button" onClick={() => tableField.append()}>
         Add Row
       </button>
+      {tableField?.error && (
+        <div style={{ color: 'red' }}>{tableField.error}</div>
+      )}
     </div>
   );
 }
