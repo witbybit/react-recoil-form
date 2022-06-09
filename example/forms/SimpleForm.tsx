@@ -8,19 +8,29 @@ function SimpleForm(props) {
     onSubmit: props.onSubmit,
     onError: props.onError,
     reinitializeOnSubmit: true,
-    initialValues: props.initialValues ?? {name: "Abc", email: ''}
+    initialValues: props.initialValues ?? { name: 'Abc', email: '' },
   });
   return (
     <React.Fragment>
       <form onSubmit={handleSubmit}>
-        <InputField name="name" type="text" disabled={true}/>
-        <InputField name="email" type="text" depFields={['name']} validate={(value, otherValues) => {
-          return !otherValues.values?.name ? 'Name has to be present': null
-        }}/>
-        <br/>
+        <InputField name="name" type="text" disabled={false} />
+        <InputField
+          name="email"
+          type="text"
+          depFields={['name']}
+          validate={(value, otherValues) => {
+            return !value ? 'email has to be present' : null;
+          }}
+        />
+        <br />
         <div>
           <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues()}>Reset</button>
+          <button type="button" onClick={() => resetInitialValues()}>
+            Reset
+          </button>
+        </div>
+        <div>
+          Note that on submit, the values will be reinitialized back to original initial values as specified in useForm() props.
         </div>
       </form>
       <Results />
@@ -28,4 +38,4 @@ function SimpleForm(props) {
   );
 }
 
-export default withFormProvider(SimpleForm);
+export default withFormProvider(SimpleForm, { skipRecoilRoot: true });

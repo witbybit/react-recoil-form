@@ -1,10 +1,4 @@
-import {
-  atom,
-  atomFamily,
-  RecoilState,
-  RecoilValue,
-  selectorFamily,
-} from 'recoil';
+import { atomFamily, RecoilState, RecoilValue, selectorFamily } from 'recoil';
 import { gan, getNewRowId } from './atomUtils';
 import {
   FinalValues,
@@ -21,15 +15,14 @@ import {
 } from './types';
 import { getPathInObj, isUndefined, setPathInObj } from './utils';
 
-export const formValuesAtom = atom<FinalValues>({
+export const formValuesAtom = atomFamily<FinalValues, string>({
   key: gan('FormValues'),
   default: { values: {}, extraInfos: {} },
 });
 
-export const formInitialValuesAtom = atom<InitialValues>({
+export const formInitialValuesAtom = atomFamily<InitialValues, string>({
   key: gan('FormInitialValues'),
   default: {
-    formId: '',
     values: {},
     version: 0,
     extraInfos: {},
@@ -102,17 +95,12 @@ export const fieldAtomFamily = atomFamily<
   ],
 });
 
-export function getFormId(get: (val: RecoilValue<any>) => any) {
-  const initialValues = get(formInitialValuesAtom) as InitialValues;
-  return initialValues.formId;
-}
-
 export function resetFieldArrayRow(
+  formId: string,
   params: IFieldArrayRowInput,
   get: (val: RecoilValue<any>) => any,
   reset: (recoilVal: RecoilState<any>) => void
 ) {
-  const formId = getFormId(get);
   const fieldArrayValue = get(
     fieldAtomFamily({
       ancestors: params.ancestors,
@@ -155,6 +143,7 @@ export function resetFieldArrayRow(
         ) as IFieldArrayAtomValue;
         for (const rowId of fieldArrayValue.rowIds) {
           resetFieldArrayRow(
+            formId,
             { ancestors: fieldAncestors, name: field.name, rowId },
             get,
             reset
@@ -180,6 +169,7 @@ interface IValidationParams {
 }
 
 export function getFieldArrayDataAndExtraInfo(
+  formId: string,
   params: IGetFieldArrayInput,
   get: (
     atom: RecoilValue<IFieldArrayAtomValue | IFieldAtomValue>
@@ -192,7 +182,6 @@ export function getFieldArrayDataAndExtraInfo(
   extraInfo: any;
   errors?: IFieldError[];
 } {
-  const formId = getFormId(get);
   const isValidation = validationParams?.isValidation;
   const set = validationParams?.set;
   const skipFieldCheck = validationParams?.skipFieldCheck;
@@ -282,6 +271,7 @@ export function getFieldArrayDataAndExtraInfo(
             extraInfo: fieldExtraInfo,
             errors: fieldErrors,
           } = getFieldArrayDataAndExtraInfo(
+            formId,
             {
               name: field.name,
               ancestors: fieldAncestors,
@@ -345,6 +335,7 @@ interface ISetFieldArrayParams {
 }
 
 export function setFieldArrayDataAndExtraInfo(
+  formId: string,
   params: IFieldAtomInput,
   setParams: ISetFieldArrayParams
 ) {
@@ -361,7 +352,6 @@ export function setFieldArrayDataAndExtraInfo(
   if (!mode) {
     mode = { type: 'set' };
   }
-  const formId = getFormId(get);
   const fieldArrayParams: IFieldAtomSelectorInput = {
     ...params,
     formId,
@@ -401,7 +391,7 @@ export function setFieldArrayDataAndExtraInfo(
       } as Partial<IFieldArrayAtomValue>)
     );
     for (const rowId of rowIdsToRemove) {
-      resetFieldArrayRow({ ...fieldArrayParams, rowId }, get, reset);
+      resetFieldArrayRow(formId, { ...fieldArrayParams, rowId }, get, reset);
     }
   } else if (mode.type === 'insert') {
     rowIds = [...oldRowIds];
@@ -480,6 +470,7 @@ export function setFieldArrayDataAndExtraInfo(
             const data = getPathInObj(fieldValues, field.name);
             const extraInfo = getPathInObj(extraInfos, field.name);
             setFieldArrayDataAndExtraInfo(
+              formId,
               { name: field.name, ancestors: fieldAncestors },
               {
                 get,
@@ -508,15 +499,17 @@ export function setFieldArrayDataAndExtraInfo(
 export const fieldArrayColAtomValueSelectorFamily = selectorFamily<
   { values: any[]; extraInfos: any[] },
   {
+    formId: string;
     ancestors?: { name: string; rowId: number }[];
     fieldArrayName: string;
     fieldNames?: string[];
   }
 >({
   key: gan('FieldArrayColAtomValueSelector'),
-  get: ({ ancestors, fieldArrayName, fieldNames }) => {
+  get: ({ formId, ancestors, fieldArrayName, fieldNames }) => {
     return ({ get }) => {
       const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
+        formId,
         {
           ancestors: ancestors ?? [],
           name: fieldArrayName,
@@ -531,46 +524,37 @@ export const fieldArrayColAtomValueSelectorFamily = selectorFamily<
 
 export const multipleFieldsSelectorFamily = selectorFamily<
   { values: { [key: string]: any }; extraInfos: { [key: string]: any } },
-  (string | { ancestors?: { name: string; rowId: number }[]; name: string })[]
+  {
+    formId: string;
+    ancestors?: { name: string; rowId: number }[];
+    name: string;
+  }[]
 >({
   key: gan('FormFieldsSelector'),
   get: (
-    fieldNames: (
-      | string
-      | { ancestors?: { name: string; rowId: number }[]; name: string }
-    )[]
+    fieldNames: {
+      formId: string;
+      ancestors?: { name: string; rowId: number }[];
+      name: string;
+    }[]
   ) => {
     return ({ get }) => {
       if (!fieldNames?.length) {
         return { values: {}, extraInfos: {} };
       }
-      const formId = getFormId(get);
       const values: any = {};
       const extraInfos: any = {};
       for (const fieldInfo of fieldNames) {
-        if (typeof fieldInfo === 'string') {
-          const fieldAtomVal = get(
-            fieldAtomFamily({
-              name: fieldInfo,
-              type: 'field',
-              ancestors: [],
-              formId,
-            })
-          ) as IFieldAtomValue;
-          setPathInObj(values, fieldInfo, fieldAtomVal?.data);
-          setPathInObj(extraInfos, fieldInfo, fieldAtomVal?.extraInfo);
-        } else {
-          const fieldAtomVal = get(
-            fieldAtomFamily({
-              ancestors: fieldInfo.ancestors ?? [],
-              name: fieldInfo.name,
-              type: 'field',
-              formId,
-            })
-          ) as IFieldAtomValue;
-          setPathInObj(values, fieldInfo.name, fieldAtomVal?.data);
-          setPathInObj(extraInfos, fieldInfo.name, fieldAtomVal?.extraInfo);
-        }
+        const fieldAtomVal = get(
+          fieldAtomFamily({
+            ancestors: fieldInfo.ancestors ?? [],
+            name: fieldInfo.name,
+            type: 'field',
+            formId: fieldInfo.formId,
+          })
+        ) as IFieldAtomValue;
+        setPathInObj(values, fieldInfo.name, fieldAtomVal?.data);
+        setPathInObj(extraInfos, fieldInfo.name, fieldAtomVal?.extraInfo);
       }
       return { values, extraInfos };
     };

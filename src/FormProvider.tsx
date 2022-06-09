@@ -4,6 +4,7 @@ import React, {
   useState,
   Fragment,
   useRef,
+  useContext,
 } from 'react';
 import {
   RecoilRoot,
@@ -23,7 +24,6 @@ import {
   formInitialValuesAtom,
   formValuesAtom,
   getFieldArrayDataAndExtraInfo,
-  getFormId,
   multipleFieldsSelectorFamily,
   resetFieldArrayRow,
   setFieldArrayDataAndExtraInfo,
@@ -51,7 +51,8 @@ import {
 } from './utils';
 
 function FormValuesObserver() {
-  const setFormValues = useSetRecoilState(formValuesAtom);
+  const formId = useContext(FormIdContext);
+  const setFormValues = useSetRecoilState(formValuesAtom(formId));
   const [localFormValues, setLocalFormValues] = useState<any>({
     values: {},
     extraInfo: {},
@@ -63,7 +64,7 @@ function FormValuesObserver() {
 
   useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
     const get = (atom: RecoilValue<any>) => snapshot.getLoadable(atom).contents;
-    const newValues = getFormValues(get);
+    const newValues = getFormValues(formId, get);
     if (!isDeepEqual(newValues, localFormValues)) {
       setLocalFormValues(newValues);
     }
@@ -75,32 +76,36 @@ function FormValuesObserver() {
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const { ancestors, name, validate, defaultValue, depFields, skipUnregister } =
     props;
-  const initialValues = useRecoilValue(formInitialValuesAtom);
+  const formId = useContext(FormIdContext);
+  const initialValues = useRecoilValue(formInitialValuesAtom(formId));
   const [atomValue, setAtomValue] = useRecoilState(
     fieldAtomFamily({
       ancestors: ancestors ?? [],
       name,
       type: 'field',
-      formId: initialValues.formId,
+      formId,
     }) as RecoilState<IFieldAtomValue<D, E>>
   );
   const oldOtherParamsRef = useRef<any>(null);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
-
+  const depObjFields =
+    depFields?.map((f) =>
+      typeof f === 'string' ? { name: f, formId } : { ...f, formId }
+    ) ?? [];
   // TODO: Memoize or change the params so that this hook doesn't render everytime useField is rendered
   const otherParams = useRecoilValue(
-    multipleFieldsSelectorFamily(depFields ?? [])
+    multipleFieldsSelectorFamily(depObjFields)
   );
 
   const initializeFieldValue = useRecoilTransaction_UNSTABLE(
     ({ set, get }) =>
       () => {
-        const initialValues = get(formInitialValuesAtom);
+        const initialValues = get(formInitialValuesAtom(formId));
         const fieldAtom = fieldAtomFamily({
           ancestors: ancestors ?? [],
           name,
           type: 'field',
-          formId: initialValues.formId,
+          formId,
         });
         set(fieldAtom, (val) =>
           Object.assign({}, val, {
@@ -143,7 +148,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
               name,
               ancestors: ancestors ?? [],
               type: 'field',
-              formId: initialValues.formId,
+              formId,
             })
           );
         }
@@ -229,14 +234,21 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
 
 export function useFieldWatch(props: IFieldWatchParams) {
   const { fieldNames } = props;
-  const selector = multipleFieldsSelectorFamily(fieldNames);
+  const formId = useContext(FormIdContext);
+  const fieldNameParams =
+    fieldNames?.map((f) =>
+      typeof f === 'string' ? { name: f, formId } : { ...f, formId }
+    ) ?? [];
+  const selector = multipleFieldsSelectorFamily(fieldNameParams);
   const { values, extraInfos } = useRecoilValue(selector);
   return { values, extraInfos };
 }
 
 export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
   const { fieldArrayName, fieldNames } = props;
+  const formId = useContext(FormIdContext);
   const selector = fieldArrayColAtomValueSelectorFamily({
+    formId,
     fieldArrayName,
     fieldNames,
   });
@@ -245,8 +257,11 @@ export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
 }
 
 export function useIsDirty(options?: IIsDirtyProps) {
-  const { values: formValues } = useRecoilValue(formValuesAtom);
-  const { values: initialValues } = useRecoilValue(formInitialValuesAtom);
+  const formId = useContext(FormIdContext);
+  const { values: formValues } = useRecoilValue(formValuesAtom(formId));
+  const { values: initialValues } = useRecoilValue(
+    formInitialValuesAtom(formId)
+  );
   const updatedFormValues = options?.preCompareUpdateFormValues
     ? options.preCompareUpdateFormValues(cloneDeep(formValues))
     : formValues;
@@ -254,11 +269,13 @@ export function useIsDirty(options?: IIsDirtyProps) {
 }
 
 export function useFormValues() {
-  const { values: formValues } = useRecoilValue(formValuesAtom);
+  const formId = useContext(FormIdContext);
+  const { values: formValues } = useRecoilValue(formValuesAtom(formId));
   return formValues;
 }
 
 export function useFormContext() {
+  const formId = useContext(FormIdContext);
   const setValue = useRecoilCallback(
     ({ set, snapshot, reset }) =>
       (
@@ -266,7 +283,6 @@ export function useFormContext() {
         newValue: { value?: any; extraInfo?: any }
       ) => {
         const get = snapshotToGet(snapshot);
-        const formId = getFormId(get);
         const newAtomData = {} as Partial<IFieldAtomValue>;
         if (newValue.value !== undefined) {
           newAtomData.data = newValue.value;
@@ -290,6 +306,7 @@ export function useFormContext() {
           );
         } else if (fieldKey.type === 'field-array') {
           setFieldArrayDataAndExtraInfo(
+            formId,
             {
               ancestors: fieldKey.ancestors ?? [],
               name: fieldKey.name,
@@ -304,14 +321,13 @@ export function useFormContext() {
           );
         }
       },
-    []
+    [formId]
   );
 
   const getValue = useRecoilCallback(
     ({ snapshot }) =>
       (key: IFormContextFieldInput) => {
         const get = snapshotToGet(snapshot);
-        const formId = getFormId(get);
         if (key.type === 'field') {
           const fieldAtom = get(
             fieldAtomFamily({
@@ -324,6 +340,7 @@ export function useFormContext() {
           return { value: fieldAtom.data, extraInfo: fieldAtom.extraInfo };
         } else if (key.type === 'field-array') {
           const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
+            formId,
             {
               ancestors: key.ancestors ?? [],
               name: key.name,
@@ -334,29 +351,30 @@ export function useFormContext() {
         }
         return null;
       },
-    []
+    [formId]
   );
 
   const getValues = useRecoilCallback<any, any>(
     ({ snapshot }) =>
       () => {
         const get = snapshotToGet(snapshot);
-        return getFormValues(get);
+        return getFormValues(formId, get);
       },
-    []
+    [formId]
   );
 
   const checkIsDirty = useRecoilCallback<any, any>(
     ({ snapshot }) =>
       (options?: IIsDirtyProps) => {
         const get = snapshotToGet(snapshot);
-        const { values } = getFormValues(get);
-        const initialValues = get(formInitialValuesAtom)?.values;
+        const { values } = getFormValues(formId, get);
+        const initialValues = get(formInitialValuesAtom(formId))?.values;
         const updatedFormValues = options?.preCompareUpdateFormValues
           ? options.preCompareUpdateFormValues(values)
           : values;
         return !isDeepEqual(initialValues, updatedFormValues);
-      }
+      },
+    [formId]
   );
 
   return { getValue, setValue, getValues, checkIsDirty };
@@ -371,15 +389,15 @@ export function useFieldArray(props: IFieldArrayProps) {
     ancestors,
     defaultValue,
   } = props;
-
-  const initialValues = useRecoilValue(formInitialValuesAtom);
+  const formId = useContext(FormIdContext);
+  const initialValues = useRecoilValue(formInitialValuesAtom(formId));
   const prevFieldArrayValues = useRef<any>(null);
   const [fieldArrayProps, setFieldArrayProps] = useRecoilState(
     fieldAtomFamily({
       name,
       ancestors: ancestors ?? [],
       type: 'field-array',
-      formId: initialValues.formId,
+      formId,
     }) as RecoilState<IFieldArrayAtomValue>
   );
   const fieldArrayValueForValidation = useFieldArrayColumnWatch({
@@ -394,6 +412,7 @@ export function useFieldArray(props: IFieldArrayProps) {
     ({ get, set, reset }) =>
       (fieldValues: any[]) => {
         setFieldArrayDataAndExtraInfo(
+          formId,
           { name, ancestors: ancestors ?? [] },
           {
             get,
@@ -411,6 +430,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
         const { errors } = getFieldArrayDataAndExtraInfo(
+          formId,
           { name, ancestors: ancestors ?? [] },
           get,
           {
@@ -420,7 +440,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         );
         return { errors, isValid: !errors?.length };
       },
-    [name, fieldArrayProps]
+    [name, fieldArrayProps, formId]
   );
 
   useEffect(() => {
@@ -432,7 +452,6 @@ export function useFieldArray(props: IFieldArrayProps) {
       const error = validate(fieldArrayValueForValidation?.values ?? []);
       setFieldArrayProps((d) => Object.assign({}, d, { error }));
     }
-    console.log('field array values = ', fieldArrayValueForValidation);
   }, [fieldArrayValueForValidation, setFieldArrayProps, validate]);
 
   const getFieldArrayValue = useRecoilCallback(
@@ -440,17 +459,17 @@ export function useFieldArray(props: IFieldArrayProps) {
       () => {
         const get = snapshotToGet(snapshot);
         return getFieldArrayDataAndExtraInfo(
+          formId,
           { name, ancestors: ancestors ?? [] },
           get
         ).data;
       },
-    [name, ancestors]
+    [name, ancestors, formId]
   );
 
   const remove = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       (index: number) => {
-        const formId = getFormId(get);
         const fieldArrayAtomValue = get(
           fieldAtomFamily({
             ancestors: ancestors ?? [],
@@ -462,6 +481,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         let rowIdToRemove = fieldArrayAtomValue.rowIds[index];
         if (rowIdToRemove !== null) {
           resetFieldArrayRow(
+            formId,
             { name, rowId: rowIdToRemove, ancestors: ancestors ?? [] },
             get,
             reset
@@ -482,13 +502,12 @@ export function useFieldArray(props: IFieldArrayProps) {
           );
         }
       },
-    [name, ancestors]
+    [name, ancestors, formId]
   );
 
   const removeAll = useRecoilTransaction_UNSTABLE(
     ({ get, set, reset }) =>
       () => {
-        const formId = getFormId(get);
         const fieldArrayAtomValue = get(
           fieldAtomFamily({
             name,
@@ -500,6 +519,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         const rowIds = fieldArrayAtomValue.rowIds;
         for (const rowId of rowIds) {
           resetFieldArrayRow(
+            formId,
             { name, rowId, ancestors: ancestors ?? [] },
             get,
             reset
@@ -517,13 +537,14 @@ export function useFieldArray(props: IFieldArrayProps) {
           })
         );
       },
-    [name, ancestors]
+    [name, ancestors, formId]
   );
 
   const append = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       (...rows: any[]) => {
         setFieldArrayDataAndExtraInfo(
+          formId,
           { name, ancestors: ancestors ?? [] },
           {
             get,
@@ -534,13 +555,14 @@ export function useFieldArray(props: IFieldArrayProps) {
           }
         );
       },
-    [name, fieldNames]
+    [name, fieldNames, formId]
   );
 
   const insert = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       (index: number, ...rows: any[]) => {
         setFieldArrayDataAndExtraInfo(
+          formId,
           { name, ancestors: ancestors ?? [] },
           {
             get,
@@ -551,19 +573,19 @@ export function useFieldArray(props: IFieldArrayProps) {
           }
         );
       },
-    [fieldArrayProps.rowIds, name]
+    [fieldArrayProps.rowIds, name, formId]
   );
 
   const initializeFieldArrayValue = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       () => {
-        const initialValues = get(formInitialValuesAtom);
+        const initialValues = get(formInitialValuesAtom(formId));
         const objPath = getFullObjectPath(
           {
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
-            formId: initialValues.formId,
+            formId,
           },
           get
         );
@@ -575,7 +597,7 @@ export function useFieldArray(props: IFieldArrayProps) {
             name,
             ancestors: ancestors ?? [],
             type: 'field-array',
-            formId: initialValues.formId,
+            formId,
           }),
           (val) =>
             Object.assign({}, val, {
@@ -588,6 +610,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         // Values are only initialized for fields or field arrays without ancestors
         if (!ancestors?.length && initialValue?.length) {
           setFieldArrayDataAndExtraInfo(
+            formId,
             { name, ancestors: ancestors ?? [] },
             {
               get,
@@ -601,7 +624,7 @@ export function useFieldArray(props: IFieldArrayProps) {
           );
         }
       },
-    [name, validate, fieldNames, ancestors, skipUnregister]
+    [name, validate, fieldNames, ancestors, skipUnregister, formId]
   );
 
   const resetFieldArray = useRecoilTransaction_UNSTABLE(
@@ -614,7 +637,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               ancestors: [],
               name: topAncestor.name,
               type: 'field-array',
-              formId: initialValues.formId,
+              formId,
             })
           ) as IFieldArrayAtomValue;
           if (topAncestorVal.skipUnregister) {
@@ -626,13 +649,14 @@ export function useFieldArray(props: IFieldArrayProps) {
           ancestors: ancestors ?? [],
           name,
           type: 'field-array',
-          formId: initialValues.formId,
+          formId,
         });
         const value = get(fieldArrayAtom);
         const fieldArrayAtomValue = value as IFieldArrayAtomValue;
         if (!skipUnregister && !initialValues.skipUnregister) {
           for (const rowId of fieldArrayAtomValue.rowIds) {
             resetFieldArrayRow(
+              formId,
               { name, ancestors: ancestors ?? [], rowId },
               get,
               reset
@@ -641,7 +665,7 @@ export function useFieldArray(props: IFieldArrayProps) {
           reset(fieldArrayAtom);
         }
       },
-    [skipUnregister, initialValues]
+    [skipUnregister, initialValues, formId]
   );
 
   useEffect(() => {
@@ -694,15 +718,14 @@ interface IFormProps {
   reinitializeOnSubmit?: boolean;
 }
 
-const getFormValues = (get: (val: RecoilValue<any>) => any) => {
-  const initialValues = get(formInitialValuesAtom) as InitialValues;
+const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
+  const initialValues = get(formInitialValuesAtom(formId)) as InitialValues;
   const values: any = initialValues.values
     ? cloneDeep(initialValues.values)
     : {};
   const extraInfos: any = initialValues.extraInfos
     ? cloneDeep(initialValues.extraInfos)
     : {};
-  const formId = initialValues.formId;
   const fieldArrays = combinedFieldAtomValues[formId]
     ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
     : [];
@@ -767,13 +790,13 @@ export function useForm(props: IFormProps) {
   const [formState, setFormState] = useState<{ isSubmitting: boolean }>({
     isSubmitting: false,
   });
+  const formId = useContext(FormIdContext);
   const initValuesVer = useRef(0);
 
   function resetDataAtoms(
     reset: (val: RecoilState<any>) => void,
     get: (val: RecoilValue<any>) => any
   ) {
-    const formId = getFormId(get);
     if (formId) {
       if (combinedFieldAtomValues?.[formId]?.fields) {
         for (const field of Object.values(
@@ -797,53 +820,46 @@ export function useForm(props: IFormProps) {
 
   const handleReset = useRecoilTransaction_UNSTABLE(
     ({ reset, get }) =>
-      (deleteFormId: boolean = false) => {
+      () => {
         resetDataAtoms(reset, get);
-        if (deleteFormId) {
-          const formId = getFormId(get);
-          delete combinedFieldAtomValues[formId];
-        }
       },
-    []
+    [formId]
   );
 
   useEffect(() => {
     return () => {
-      handleReset(true);
+      handleReset();
     };
   }, [handleReset]);
 
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
-      (
-        values?: any,
-        skipUnregister?: boolean,
-        extraInfos?: any,
-        formId?: string
-      ) => {
+      (values?: any, skipUnregister?: boolean, extraInfos?: any) => {
         resetDataAtoms(reset, get);
         initValuesVer.current = initValuesVer.current + 1;
-        const existingVal = get(formInitialValuesAtom);
+        const existingVal = get(formInitialValuesAtom(formId));
         const newValues = values ?? existingVal.values;
         const newExtraInfos = extraInfos ?? existingVal.extraInfos;
         set(
-          formInitialValuesAtom,
+          formInitialValuesAtom(formId),
           Object.assign({}, existingVal, {
-            formId: formId ?? existingVal.formId,
             values: newValues,
             extraInfos: newExtraInfos,
             version: initValuesVer.current,
             skipUnregister: skipUnregister ?? existingVal.skipUnregister,
           })
         );
-        set(formValuesAtom, { values: newValues, extraInfos: newExtraInfos });
+        set(formValuesAtom(formId), {
+          values: newValues,
+          extraInfos: newExtraInfos,
+        });
       },
-    []
+    [formId]
   );
 
   const resetInitialValues = useCallback(
     (values?: any, extraInfos?: any) => {
-      updateInitialValues(values, undefined, extraInfos, undefined);
+      updateInitialValues(values, undefined, extraInfos);
     },
     [updateInitialValues]
   );
@@ -851,22 +867,12 @@ export function useForm(props: IFormProps) {
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
     if (!initValuesVer.current) {
-      let formId = generateFormId();
-      while (combinedFieldAtomValues[formId]) {
-        formId = generateFormId();
-      }
-      combinedFieldAtomValues[formId] = { fields: {}, fieldArrays: {} };
-      updateInitialValues(
-        initialValues ?? {},
-        skipUnregister,
-        undefined,
-        formId
-      );
+      updateInitialValues(initialValues ?? {}, skipUnregister, undefined);
     }
   }, [updateInitialValues, skipUnregister, initialValues]);
 
   const getValuesAndExtraInfo = (get: (val: RecoilValue<any>) => any) =>
-    getFormValues(get);
+    getFormValues(formId, get);
 
   const validateFields = useRecoilCallback(
     ({ snapshot, set }) =>
@@ -874,7 +880,6 @@ export function useForm(props: IFormProps) {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
         const extValues = getValuesAndExtraInfo(get);
-        const formId = getFormId(get);
         const errors: IFieldError[] = [];
         if (fieldNames?.length) {
           for (const fieldName of fieldNames) {
@@ -907,7 +912,7 @@ export function useForm(props: IFormProps) {
               }
             } else {
               const { errors: fieldArrayErrors } =
-                getFieldArrayDataAndExtraInfo(fieldName, get, {
+                getFieldArrayDataAndExtraInfo(formId, fieldName, get, {
                   isValidation: true,
                   set,
                 });
@@ -919,7 +924,7 @@ export function useForm(props: IFormProps) {
         }
         return errors;
       },
-    []
+    [formId]
   );
 
   const validateAllFields = useRecoilCallback(
@@ -927,7 +932,6 @@ export function useForm(props: IFormProps) {
       (values: any, extraInfos: any) => {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
-        const formId = getFormId(get);
         const errors: IFieldError[] = [];
         for (const fieldAtomInfo of Object.values(
           combinedFieldAtomValues[formId].fields
@@ -954,6 +958,7 @@ export function useForm(props: IFormProps) {
           combinedFieldAtomValues[formId].fieldArrays
         )) {
           const { errors: fieldArrayErrors } = getFieldArrayDataAndExtraInfo(
+            formId,
             fieldArrayAtomInfo.param,
             get,
             {
@@ -968,7 +973,7 @@ export function useForm(props: IFormProps) {
         }
         return errors;
       },
-    []
+    [formId]
   );
 
   const handleSubmit = useRecoilCallback(
@@ -1028,6 +1033,7 @@ export function useForm(props: IFormProps) {
       validate,
       updateInitialValues,
       skipUnregister,
+      formId,
     ]
   );
 
@@ -1056,14 +1062,26 @@ interface FormProviderOptions {
   skipValuesObserver?: boolean;
 }
 
+const FormIdContext = React.createContext('');
+
 export function FormProvider(props: {
   children: any;
   options?: FormProviderOptions;
 }) {
+  const formId = useRef<string>(generateFormId());
+
+  useEffect(() => {
+    return () => {
+      delete combinedFieldAtomValues[formId.current];
+    };
+  }, []);
+
   return (
     <RecoilRoot override={!props.options?.skipRecoilRoot}>
-      {props.options?.skipValuesObserver ? null : <FormValuesObserver />}
-      <RecoilFormProvider {...props} />
+      <FormIdContext.Provider value={formId.current}>
+        {props.options?.skipValuesObserver ? null : <FormValuesObserver />}
+        <RecoilFormProvider {...props} />
+      </FormIdContext.Provider>
     </RecoilRoot>
   );
 }

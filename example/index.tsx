@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { RecoilRoot } from 'recoil';
 import { useFormValues, useIsDirty } from '../src';
 import DirtyCheckForm from './forms/DirtyCheckForm';
 import ExtraInfoForm from './forms/FileUploadForm';
@@ -69,35 +70,37 @@ function App() {
   }
 
   return (
-    <div className="wrapper">
-      <div className="left-nav">
-        {formExamples.map((f) => {
-          return (
-            <div
-              key={f.id}
-              className="left-nav-item"
-              onClick={() => {
-                setFormId(f.id);
-              }}
-            >
-              {f.title}
-            </div>
-          );
-        })}
+    <RecoilRoot>
+      <div className="wrapper">
+        <div className="left-nav">
+          {formExamples.map((f) => {
+            return (
+              <div
+                key={f.id}
+                className="left-nav-item"
+                onClick={() => {
+                  setFormId(f.id);
+                }}
+              >
+                {f.title}
+              </div>
+            );
+          })}
+        </div>
+        <div className="form-panel">
+          {formExamples
+            .find((f) => f.id === formId)
+            ?.getComponent({ onSubmit, onError })}
+        </div>
+        <div className="result">
+          <div>Submitted values: {JSON.stringify(result, null, 2)}</div>
+          <br />
+          <div>Submitted extra info: {JSON.stringify(extraInfo, null, 2)}</div>
+          <br />
+          <div>{`Submission Time: ${time || ''}`}</div>
+        </div>
       </div>
-      <div className="form-panel">
-        {formExamples
-          .find((f) => f.id === formId)
-          ?.getComponent({ onSubmit, onError })}
-      </div>
-      <div className="result">
-        <div>Submitted values: {JSON.stringify(result, null, 2)}</div>
-        <br />
-        <div>Submitted extra info: {JSON.stringify(extraInfo, null, 2)}</div>
-        <br />
-        <div>{`Submission Time: ${time || ''}`}</div>
-      </div>
-    </div>
+    </RecoilRoot>
   );
 }
 

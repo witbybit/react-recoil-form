@@ -18,7 +18,6 @@ export interface IFieldArrayAtomValue extends IAtomValueBase {
 }
 
 export interface InitialValues {
-  formId: string;
   values: any;
   extraInfos: any;
   version: number;
