@@ -54,7 +54,7 @@ export function setPathInObj(
     if (isLastKey) {
       objInFocus[key] = value;
     } else {
-      if (objInFocus[key] === undefined) {
+      if (objInFocus[key] === undefined || objInFocus[key] === null) {
         objInFocus[key] = isKeyArrIdx ? [] : {};
       }
       objInFocus = objInFocus[key];

@@ -727,7 +727,7 @@ const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
     ? cloneDeep(initialValues.extraInfos)
     : {};
   const fieldArrays = combinedFieldAtomValues[formId]
-    ? Object.values(combinedFieldAtomValues[formId].fieldArrays)
+    ? Object.values(combinedFieldAtomValues[formId]?.fieldArrays ?? {})
     : [];
   // Don't preserve initial values for top level field arrays.
   // One problem with preserving initial values here is that removed rows come back.
@@ -737,7 +737,7 @@ const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
     }
   }
   const fields = combinedFieldAtomValues[formId]
-    ? Object.values(combinedFieldAtomValues[formId].fields)
+    ? Object.values(combinedFieldAtomValues[formId]?.fields ?? {})
     : [];
   for (const fieldAtomValue of fields) {
     const ancestors = fieldAtomValue.param.ancestors;
@@ -931,7 +931,7 @@ export function useForm(props: IFormProps) {
           snapshot.getLoadable(atom).contents;
         const errors: IFieldError[] = [];
         for (const fieldAtomInfo of Object.values(
-          combinedFieldAtomValues[formId].fields
+          combinedFieldAtomValues[formId]?.fields ?? {}
         )) {
           const fieldAtom = fieldAtomFamily(fieldAtomInfo.param);
           const formFieldData = get(fieldAtom) as IFieldAtomValue;
@@ -952,7 +952,7 @@ export function useForm(props: IFormProps) {
           }
         }
         for (const fieldArrayAtomInfo of Object.values(
-          combinedFieldAtomValues[formId].fieldArrays
+          combinedFieldAtomValues[formId]?.fieldArrays ?? {}
         )) {
           const { errors: fieldArrayErrors } = getFieldArrayDataAndExtraInfo(
             formId,
