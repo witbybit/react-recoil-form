@@ -793,10 +793,7 @@ export function useForm(props: IFormProps) {
   const formId = useContext(FormIdContext);
   const initValuesVer = useRef(0);
 
-  function resetDataAtoms(
-    reset: (val: RecoilState<any>) => void,
-    get: (val: RecoilValue<any>) => any
-  ) {
+  function resetDataAtoms(reset: (val: RecoilState<any>) => void) {
     if (formId) {
       if (combinedFieldAtomValues?.[formId]?.fields) {
         for (const field of Object.values(
@@ -819,9 +816,9 @@ export function useForm(props: IFormProps) {
   }
 
   const handleReset = useRecoilTransaction_UNSTABLE(
-    ({ reset, get }) =>
+    ({ reset }) =>
       () => {
-        resetDataAtoms(reset, get);
+        resetDataAtoms(reset);
       },
     [formId]
   );
@@ -835,7 +832,7 @@ export function useForm(props: IFormProps) {
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       (values?: any, skipUnregister?: boolean, extraInfos?: any) => {
-        resetDataAtoms(reset, get);
+        resetDataAtoms(reset);
         initValuesVer.current = initValuesVer.current + 1;
         const existingVal = get(formInitialValuesAtom(formId));
         const newValues = values ?? existingVal.values;
