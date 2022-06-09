@@ -1071,8 +1071,9 @@ export function FormProvider(props: {
   const formId = useRef<string>(generateFormId());
 
   useEffect(() => {
+    const currentFormId = formId.current;
     return () => {
-      delete combinedFieldAtomValues[formId.current];
+      delete combinedFieldAtomValues[currentFormId];
     };
   }, []);
 
