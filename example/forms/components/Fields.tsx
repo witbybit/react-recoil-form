@@ -98,7 +98,7 @@ export function TableField(props: TableFieldProps) {
     name: props.name,
     // If validate function is removed, only the particular field inside field array will render
     // For real-time validation, we need to listen to all fields inside the field array to pass data to validate function.
-    validate: (value) => (!value?.length ? 'Need at least one row' : undefined),
+    validate: (value) => (value?.length <=1 ? 'Need at least two rows' : undefined),
   });
 
   return (

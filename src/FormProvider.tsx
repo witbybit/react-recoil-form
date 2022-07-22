@@ -294,6 +294,8 @@ export function useFormContext() {
           typeof key === 'string'
             ? { type: 'field', name: key, ancestors: [] }
             : key;
+        // TODO: trigger field/field-array validation on set
+        // similar to setFieldValue
         if (fieldKey.type === 'field') {
           set(
             fieldAtomFamily({
@@ -391,7 +393,7 @@ export function useFieldArray(props: IFieldArrayProps) {
   } = props;
   const formId = useContext(FormIdContext);
   const initialValues = useRecoilValue(formInitialValuesAtom(formId));
-  const prevFieldArrayValues = useRef<any>(null);
+  const prevFieldArrayValue = useRef<any>(null);
   const [fieldArrayProps, setFieldArrayProps] = useRecoilState(
     fieldAtomFamily({
       name,
@@ -446,9 +448,13 @@ export function useFieldArray(props: IFieldArrayProps) {
   useEffect(() => {
     if (
       validate &&
-      !isDeepEqual(fieldArrayValueForValidation, prevFieldArrayValues.current)
+      fieldArrayProps.initVer &&
+      !isDeepEqual(
+        fieldArrayValueForValidation?.values,
+        prevFieldArrayValue.current?.values
+      )
     ) {
-      prevFieldArrayValues.current = fieldArrayValueForValidation;
+      prevFieldArrayValue.current = fieldArrayValueForValidation;
       const error = validate(fieldArrayValueForValidation?.values ?? []);
       setFieldArrayProps((d) => Object.assign({}, d, { error }));
     }
@@ -592,6 +598,10 @@ export function useFieldArray(props: IFieldArrayProps) {
         const initialValue =
           getPathInObj(initialValues.values, objPath) ?? defaultValue;
         const extraInfo = getPathInObj(initialValues.extraInfos, objPath);
+        prevFieldArrayValue.current = {
+          values: initialValue ?? [],
+          extraInfos: extraInfo ?? [],
+        };
         set(
           fieldAtomFamily({
             name,
@@ -873,7 +883,7 @@ export function useForm(props: IFormProps) {
 
   const validateFields = useRecoilCallback(
     ({ snapshot, set }) =>
-      (fieldNames?: (string | IFieldAtomSelectorInput)[]) => {
+      (fieldNames?: (string | IFormContextFieldInput)[]) => {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
         const extValues = getValuesAndExtraInfo(get);
@@ -888,7 +898,7 @@ export function useForm(props: IFormProps) {
               const fieldAtom = fieldAtomFamily({
                 name,
                 type: 'field',
-                ancestors,
+                ancestors: ancestors ?? [],
                 formId,
               });
               const formFieldData = get(fieldAtom) as IFieldAtomValue;
@@ -902,17 +912,25 @@ export function useForm(props: IFormProps) {
                 );
                 errors.push({
                   error: errorMsg,
-                  ancestors,
+                  ancestors: ancestors ?? [],
                   name,
                   type: 'field',
                 });
               }
             } else {
               const { errors: fieldArrayErrors } =
-                getFieldArrayDataAndExtraInfo(formId, fieldName, get, {
-                  isValidation: true,
-                  set,
-                });
+                getFieldArrayDataAndExtraInfo(
+                  formId,
+                  {
+                    ancestors: fieldName.ancestors ?? [],
+                    name: fieldName.name,
+                  },
+                  get,
+                  {
+                    isValidation: true,
+                    set,
+                  }
+                );
               if (fieldArrayErrors?.length) {
                 errors.push(...fieldArrayErrors);
               }

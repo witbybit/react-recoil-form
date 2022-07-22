@@ -4,20 +4,20 @@ import { useForm, withFormProvider } from '../../src';
 import { InputField, TableField, WatchField } from './components/Fields';
 
 function SimpleFieldArray(props) {
-  const { handleSubmit, resetInitialValues } = useForm({
+  const { handleSubmit, resetInitialValues, validateFields } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
     initialValues: {
-      items: [
-        {
-          item: {
-            name: 'Test 1',
-            desc: 'Desc',
-          },
-          amount: 1000,
-          date: '2019-05-12',
-        },
-      ],
+      // items: [
+      //   {
+      //     item: {
+      //       name: 'Test 1',
+      //       desc: 'Desc',
+      //     },
+      //     amount: 1000,
+      //     date: '2019-05-12',
+      //   },
+      // ],
     },
   });
   return (
@@ -51,6 +51,9 @@ function SimpleFieldArray(props) {
           <button type="button" onClick={() => resetInitialValues()}>
             Reset
           </button>
+          <button type="button" onClick={() => validateFields([{name: 'items', type: 'field-array'}])}>
+              Validate Field Array
+            </button>
         </div>
       </form>
       <Results />
