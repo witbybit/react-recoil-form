@@ -33,7 +33,6 @@ import {
   IFieldArrayAtomValue,
   IFieldArrayColWatchParams,
   IFieldArrayProps,
-  IFieldAtomSelectorInput,
   IFieldAtomValue,
   IFieldError,
   IFieldProps,
@@ -458,7 +457,12 @@ export function useFieldArray(props: IFieldArrayProps) {
       const error = validate(fieldArrayValueForValidation?.values ?? []);
       setFieldArrayProps((d) => Object.assign({}, d, { error }));
     }
-  }, [fieldArrayValueForValidation, setFieldArrayProps, validate]);
+  }, [
+    fieldArrayValueForValidation,
+    setFieldArrayProps,
+    validate,
+    fieldArrayProps.initVer,
+  ]);
 
   const getFieldArrayValue = useRecoilCallback(
     ({ snapshot }) =>
