@@ -36,7 +36,6 @@ import {
   IFieldAtomValue,
   IFieldError,
   IFieldProps,
-  IFieldType,
   IFieldWatchParams,
   IFormContextFieldInput,
   IIsDirtyProps,
