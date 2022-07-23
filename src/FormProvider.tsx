@@ -36,6 +36,7 @@ import {
   IFieldAtomValue,
   IFieldError,
   IFieldProps,
+  IFieldType,
   IFieldWatchParams,
   IFormContextFieldInput,
   IIsDirtyProps,
@@ -167,7 +168,8 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     } else if (atomValue.initVer === initialValues.version && defaultValue) {
       // Useful for setting field value as default value inside field array
       setAtomValue((val) => {
-        if (!val.data) {
+        // null, '' and 0 are valid values so only if it's undefined, we set it as default value.
+        if (val.data === undefined) {
           return Object.assign({}, val, { data: defaultValue });
         }
         return val;
@@ -892,13 +894,35 @@ export function useForm(props: IFormProps) {
           snapshot.getLoadable(atom).contents;
         const extValues = getValuesAndExtraInfo(get);
         const errors: IFieldError[] = [];
+        const combinedFieldArrays = Object.values(
+          combinedFieldAtomValues[formId]?.fieldArrays ?? {}
+        );
         if (fieldNames?.length) {
           for (const fieldName of fieldNames) {
-            if (typeof fieldName === 'string' || fieldName.type === 'field') {
-              const name =
-                typeof fieldName === 'string' ? fieldName : fieldName.name;
-              const ancestors =
-                typeof fieldName === 'string' ? [] : fieldName.ancestors;
+            let field: IFormContextFieldInput | null = null;
+            if (typeof fieldName === 'string') {
+              const fieldArr = combinedFieldArrays.find(
+                (c) => c.param.name === fieldName && !c.param.ancestors.length
+              );
+              if (fieldArr) {
+                field = {
+                  name: fieldName,
+                  ancestors: [],
+                  type: 'field-array',
+                };
+              } else {
+                field = {
+                  name: fieldName,
+                  ancestors: [],
+                  type: 'field',
+                };
+              }
+            } else {
+              field = fieldName;
+            }
+            if (field.type === 'field') {
+              const name = field.name;
+              const ancestors = field.ancestors ?? [];
               const fieldAtom = fieldAtomFamily({
                 name,
                 type: 'field',
@@ -926,8 +950,8 @@ export function useForm(props: IFormProps) {
                 getFieldArrayDataAndExtraInfo(
                   formId,
                   {
-                    ancestors: fieldName.ancestors ?? [],
-                    name: fieldName.name,
+                    ancestors: field.ancestors ?? [],
+                    name: field.name,
                   },
                   get,
                   {
@@ -937,6 +961,22 @@ export function useForm(props: IFormProps) {
                 );
               if (fieldArrayErrors?.length) {
                 errors.push(...fieldArrayErrors);
+                for (const errorInfo of fieldArrayErrors) {
+                  if (errorInfo.type === 'field') {
+                    const fieldAtom = fieldAtomFamily({
+                      name: errorInfo.name,
+                      type: 'field',
+                      ancestors: errorInfo.ancestors ?? [],
+                      formId,
+                    });
+                    set(fieldAtom, (val) =>
+                      Object.assign({}, val, {
+                        error: errorInfo.error,
+                        touched: true,
+                      })
+                    );
+                  }
+                }
               }
             }
           }

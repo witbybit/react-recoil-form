@@ -31,7 +31,7 @@ function SimpleFieldArray(props) {
         <TableField
           name="items"
           fields={[
-            { name: 'item.name', type: 'text' },
+            { name: 'item.name', type: 'text', validate: (value) => value ? null : 'Missing value'},
             { name: 'item.desc', type: 'text' },
             { name: 'amount', type: 'number' },
             { name: 'date', type: 'date' },

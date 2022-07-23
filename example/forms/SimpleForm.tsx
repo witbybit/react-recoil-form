@@ -15,6 +15,12 @@ function SimpleForm(props) {
       <form onSubmit={handleSubmit}>
         <InputField name="name" type="text" disabled={false} />
         <InputField
+          name="value"
+          type="number"
+          disabled={false}
+          defaultValue={100}
+        />
+        <InputField
           name="email"
           type="text"
           depFields={['name']}
@@ -30,7 +36,8 @@ function SimpleForm(props) {
           </button>
         </div>
         <div>
-          Note that on submit, the values will be reinitialized back to original initial values as specified in useForm() props.
+          Note that on submit, the values will be reinitialized back to original
+          initial values as specified in useForm() props.
         </div>
       </form>
       <Results />

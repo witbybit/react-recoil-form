@@ -23,6 +23,7 @@ export interface InputFieldProps {
   depFields?: string[];
   disabled?: boolean;
   onChange?: (value: any) => void;
+  defaultValue?: number | string;
 }
 
 export function FileField(props: FileFieldProps) {
@@ -58,6 +59,7 @@ export function InputField(props: InputFieldProps) {
     ancestors: props.ancestors,
     name: props.name,
     validate: props.validate,
+    defaultValue: props.defaultValue,
     depFields: props.depFields,
   });
   return (
