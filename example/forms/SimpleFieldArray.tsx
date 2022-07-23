@@ -52,7 +52,7 @@ function SimpleFieldArray(props) {
             Reset
           </button>
           <button type="button" onClick={() => validateFields([{name: 'items', type: 'field-array'}])}>
-              Validate Field Array
+              Validate
             </button>
         </div>
       </form>

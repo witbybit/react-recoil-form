@@ -422,8 +422,10 @@ export function setFieldArrayDataAndExtraInfo(
       dataIdx < startIndex + dataArr.length;
       dataIdx++
     ) {
-      const fieldValues = dataArr[dataIdx];
-      const extraInfos = extraInfoArr?.[dataIdx];
+      // Need to subtract startIndex because only the new data is passed during insert
+      // For e.g. if startIndex is 1 and data is at index 0, we need to get the value at index 0 for row index 1.
+      const fieldValues = dataArr[dataIdx - startIndex];
+      const extraInfos = extraInfoArr?.[dataIdx - startIndex];
       const rowId = rowIds[dataIdx];
       const fieldAncestors = params.ancestors.length
         ? [...params.ancestors, { name: params.name, rowId }]
