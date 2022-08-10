@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { RecoilRoot } from 'recoil';
 import { useFormValues, useIsDirty } from '../src';
 import DirtyCheckForm from './forms/DirtyCheckForm';
+import FieldForm from './forms/FieldForm';
 import ExtraInfoForm from './forms/FileUploadForm';
 import FormContext from './forms/FormContext';
 import MultipleSimpleForms from './forms/MultipleSimpleForms';
@@ -46,6 +47,11 @@ const formExamples = [
     id: 'check-is-dirty',
     title: 'Is Dirty Prop',
     getComponent: (props) => <DirtyCheckForm {...props} />,
+  },
+  {
+    id: 'fields-form',
+    title: 'Fields',
+    getComponent: (props) => <FieldForm {...props} />,
   },
 ];
 
