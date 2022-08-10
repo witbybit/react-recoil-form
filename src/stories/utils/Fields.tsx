@@ -3,7 +3,7 @@ import {
   useField,
   useFieldArray,
   useFieldArrayColumnWatch,
-} from '../../../src';
+} from '../../FormProvider';
 
 interface FileFieldProps {
   name: string;
@@ -63,9 +63,15 @@ export function InputField(props: InputFieldProps) {
     depFields: props.depFields,
   });
   return (
-    <div>
-      <label htmlFor={props.name}>{props.label ?? props.name}</label>
+    <div className="flex flex-col items-start mb-4">
+      <label
+        htmlFor={props.name}
+        className="block text-sm font-medium text-gray-700 capitalize mb-1"
+      >
+        {props.label ?? props.name}
+      </label>
       <input
+        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300 rounded-md"
         id={props.name}
         type={props.type}
         name={props.name}
@@ -84,7 +90,9 @@ export function InputField(props: InputFieldProps) {
         value={field.fieldValue ?? ''}
         onBlur={field.onBlur}
       />
-      {field.error && <div style={{ color: 'red' }}>{field.error}</div>}
+      {field.error && (
+        <div className="text-red-500 text-sm mt-1">{field.error}</div>
+      )}
     </div>
   );
 }

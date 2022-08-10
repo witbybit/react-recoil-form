@@ -1,6 +1,6 @@
-import { withFormProvider, useForm, useIsDirty } from '../../src';
-import InputField from './components/InputField';
+import { withFormProvider, useForm, useIsDirty } from '../..';
 import React, { useEffect, useState } from 'react';
+import { InputField } from '../utils/Fields';
 
 const allLevelInitialValues = {
   level1: {
@@ -8,7 +8,7 @@ const allLevelInitialValues = {
     age: '123',
   },
   level2: {},
-  level3: {}
+  level3: {},
 };
 
 const levels = [
@@ -55,9 +55,7 @@ function App() {
 
   return (
     <div>
-      <div>
-        Dirty State
-      </div>
+      <div>Dirty State</div>
       <div>
         <div>
           {levels.map((l) => (
@@ -66,7 +64,13 @@ function App() {
               onClick={() => {
                 setCurrentLevel(l.id);
               }}
-              style={{ cursor: 'pointer', marginLeft: '10px', marginBottom: '5px', textDecoration: 'underline', color: 'blue' }}
+              style={{
+                cursor: 'pointer',
+                marginLeft: '10px',
+                marginBottom: '5px',
+                textDecoration: 'underline',
+                color: 'blue',
+              }}
             >
               {l.title}
             </span>
@@ -75,7 +79,7 @@ function App() {
 
         <form onSubmit={handleSubmit}>
           <div>
-            <InputField required name="name" label="Name" type="text" />
+            <InputField name="name" label="Name" type="text" />
           </div>
 
           <div>
@@ -83,11 +87,7 @@ function App() {
           </div>
 
           <div>
-            <button
-              type="submit"
-            >
-              Submit
-            </button>
+            <button type="submit">Submit</button>
             <button
               onClick={() => resetInitialValues(currentInitialValues)}
               type="reset"

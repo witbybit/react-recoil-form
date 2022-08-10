@@ -1,16 +1,14 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { RecoilRoot } from 'recoil';
-import { useFormValues, useIsDirty } from '../src';
-import DirtyCheckForm from './forms/DirtyCheckForm';
-import FieldForm from './forms/FieldForm';
-import ExtraInfoForm from './forms/FileUploadForm';
-import FormContext from './forms/FormContext';
-import MultipleSimpleForms from './forms/MultipleSimpleForms';
-import MultiStepForm from './forms/MultiStepForm';
-import SimpleFieldArray from './forms/SimpleFieldArray';
-import SimpleForm from './forms/SimpleForm';
-import './index.css';
+import { useFormValues, useIsDirty } from '../..';
+import DirtyCheckForm from './DirtyCheckForm';
+import FieldForm from './FieldForm';
+import FormContext from './FormContext';
+import MultipleSimpleForms from './MultipleSimpleForms';
+import MultiStepForm from './MultiStepForm';
+import SimpleFieldArray from './SimpleFieldArray';
+import SimpleForm from './SingleFieldsForm';
 
 const formExamples = [
   {

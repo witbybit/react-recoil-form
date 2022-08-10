@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Results } from '..';
-import { useForm, withFormProvider } from '../../src';
-import { InputField, TableField, WatchField } from './components/Fields';
+import { useForm, withFormProvider } from '../../FormProvider';
+import { InputField, TableField, WatchField } from '../utils/Fields';
 
 function SimpleFieldArray(props) {
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
@@ -31,7 +30,11 @@ function SimpleFieldArray(props) {
         <TableField
           name="items"
           fields={[
-            { name: 'item.name', type: 'text', validate: (value) => value ? null : 'Missing value'},
+            {
+              name: 'item.name',
+              type: 'text',
+              validate: (value) => (value ? null : 'Missing value'),
+            },
             { name: 'item.desc', type: 'text' },
             { name: 'amount', type: 'number' },
             { name: 'date', type: 'date' },
@@ -51,12 +54,16 @@ function SimpleFieldArray(props) {
           <button type="button" onClick={() => resetInitialValues()}>
             Reset
           </button>
-          <button type="button" onClick={() => validateFields([{name: 'items', type: 'field-array'}])}>
-              Validate
-            </button>
+          <button
+            type="button"
+            onClick={() =>
+              validateFields([{ name: 'items', type: 'field-array' }])
+            }
+          >
+            Validate
+          </button>
         </div>
       </form>
-      <Results />
     </React.Fragment>
   );
 }

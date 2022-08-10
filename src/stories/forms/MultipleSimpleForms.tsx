@@ -1,5 +1,5 @@
 import * as React from 'react';
-import SimpleForm from './SimpleForm';
+import SimpleForm from './SingleFieldsForm';
 
 function MultipleSimpleForms(props: any) {
   return (

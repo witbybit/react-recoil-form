@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useForm, withFormProvider } from '../../src';
-import { InputField } from './components/Fields';
-import { Results } from '../';
+import { useForm, withFormProvider } from '../../FormProvider';
+import { InputField } from '../utils/Fields';
 
 function MultiStepForm(props) {
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
@@ -19,24 +18,24 @@ function MultiStepForm(props) {
           <InputField
             name="email"
             type="text"
-            validate={value => (!!value ? null : 'Missing value')}
+            validate={(value) => (!!value ? null : 'Missing value')}
           />
         )}
         {step === 1 && (
           <InputField
             name="name"
             type="text"
-            validate={value => (!!value ? null : 'Missing value')}
+            validate={(value) => (!!value ? null : 'Missing value')}
           />
         )}
         {step === 2 && (
           <InputField
             name="address"
             type="text"
-            validate={value => (!!value ? null : 'Missing value')}
+            validate={(value) => (!!value ? null : 'Missing value')}
           />
         )}
-        <br/>
+        <br />
         <div>
           <button
             type="button"
@@ -69,7 +68,6 @@ function MultiStepForm(props) {
           </button>
         </div>
       </form>
-      <Results />
     </React.Fragment>
   );
 }

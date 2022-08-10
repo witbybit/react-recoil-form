@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useForm, withFormProvider } from '../../src';
-import { FileField, InputField } from './components/Fields';
-import { Results } from '..';
+import { useForm, withFormProvider } from '../../FormProvider';
+import { FileField, InputField } from '../utils/Fields';
 
 function ExtraInfoForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
@@ -13,7 +12,7 @@ function ExtraInfoForm(props) {
       <form onSubmit={handleSubmit}>
         <InputField name="name" type="text" />
         <FileField name="file" />
-        <br/>
+        <br />
         <div>
           <button type="submit">Submit</button>
           <button type="button" onClick={() => resetInitialValues({})}>
@@ -21,7 +20,6 @@ function ExtraInfoForm(props) {
           </button>
         </div>
       </form>
-      <Results />
     </React.Fragment>
   );
 }

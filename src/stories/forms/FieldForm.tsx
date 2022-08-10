@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Field, useForm, withFormProvider } from '../../src';
-import { FileField, InputField } from './components/Fields';
-import { Results } from '..';
+import { Field } from '../../Field';
+import { useForm, withFormProvider } from '../../FormProvider';
 
 function ExtraInfoForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
@@ -50,7 +49,6 @@ function ExtraInfoForm(props) {
           </button>
         </div>
       </form>
-      <Results />
     </React.Fragment>
   );
 }

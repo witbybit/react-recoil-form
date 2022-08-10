@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useForm, useFormContext, withFormProvider } from '../../src';
-import { InputField, InputFieldProps } from './components/Fields';
-import { Results } from '../';
+import { useForm, useFormContext, withFormProvider } from '../../FormProvider';
+import { InputField, InputFieldProps } from '../utils/Fields';
 
 function FormContext(props) {
   const { handleSubmit, resetInitialValues } = useForm({
@@ -26,7 +25,6 @@ function FormContext(props) {
           </button>
         </div>
       </form>
-      <Results />
     </React.Fragment>
   );
 }
