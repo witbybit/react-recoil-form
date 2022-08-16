@@ -34,6 +34,12 @@ function SimpleForm(props) {
           <button type="button" onClick={() => resetInitialValues()}>
             Reset
           </button>
+          <button
+            type="button"
+            onClick={() => resetInitialValues({ name: 'Def' })}
+          >
+            Change Initial Values
+          </button>
         </div>
         <div>
           Note that on submit, the values will be reinitialized back to original

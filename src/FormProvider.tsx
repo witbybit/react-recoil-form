@@ -233,8 +233,9 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
 }
 
 export function useFieldWatch(props: IFieldWatchParams) {
-  const { fieldNames } = props;
-  const formId = useContext(FormIdContext);
+  const { fieldNames, formId: extFormId } = props;
+  const contextFormId = useContext(FormIdContext);
+  const formId = extFormId ?? contextFormId;
   const fieldNameParams =
     fieldNames?.map((f) =>
       typeof f === 'string' ? { name: f, formId } : { ...f, formId }
@@ -245,8 +246,9 @@ export function useFieldWatch(props: IFieldWatchParams) {
 }
 
 export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
-  const { fieldArrayName, fieldNames } = props;
-  const formId = useContext(FormIdContext);
+  const { fieldArrayName, fieldNames, formId: extFormId } = props;
+  const contextFormId = useContext(FormIdContext);
+  const formId = extFormId ?? contextFormId;
   const selector = fieldArrayColAtomValueSelectorFamily({
     formId,
     fieldArrayName,
@@ -1118,6 +1120,11 @@ interface FormProviderOptions {
    * Skip dirty check and real-time observer for form values. This can result in better performance in some cases.
    */
   skipValuesObserver?: boolean;
+  /**
+   * This only needs to be specified for advanced cases where you want to watch fields outside the current hierarchy.
+   * Note that skipRecoilRoot should also be set to true for this use case.
+   */
+  formId?: string;
 }
 
 const FormIdContext = React.createContext('');

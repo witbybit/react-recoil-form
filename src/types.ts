@@ -34,12 +34,22 @@ export interface IFieldWatchParams {
     | string
     | { ancestors?: { name: string; rowId: number }[]; name: string }
   )[];
+  /**
+   * This is needed only for the advanced case of watching field outside the FormProvider hierarchy (assuming a formId was specified).
+   * Ideally this should never be defined.
+   */
+  formId?: string;
 }
 
 export interface IFieldArrayColWatchParams {
   ancestors?: { name: string; rowId: number }[];
   fieldArrayName: string;
   fieldNames?: string[];
+  /**
+   * This is optional and needed only for watching field outside the FormProvider hierarchy (assuming a formId was specified).
+   * Ideally this should never be defined.
+   */
+  formId?: string;
 }
 
 export type IFieldType = 'field' | 'field-array';
