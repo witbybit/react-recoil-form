@@ -40,6 +40,7 @@ import {
   IFormContextFieldInput,
   IIsDirtyProps,
   InitialValues,
+  IRemoveFieldParams,
 } from './types';
 import {
   getPathInObj,
@@ -381,7 +382,34 @@ export function useFormContext() {
     [formId]
   );
 
-  return { getValue, setValue, getValues, checkIsDirty };
+  const removeFields = useRecoilCallback<any, any>(
+    ({ reset }) =>
+      (params: IRemoveFieldParams) => {
+        for (const fieldName of params.fieldNames) {
+          if (typeof fieldName === 'string') {
+            reset(
+              fieldAtomFamily({
+                ancestors: [],
+                formId,
+                name: fieldName,
+                type: 'field',
+              })
+            );
+          } else {
+            reset(
+              fieldAtomFamily({
+                ancestors: fieldName.ancestors ?? [],
+                formId,
+                name: fieldName.name,
+                type: 'field',
+              })
+            );
+          }
+        }
+      }
+  );
+
+  return { getValue, setValue, getValues, checkIsDirty, removeFields };
 }
 
 export function useFieldArray(props: IFieldArrayProps) {

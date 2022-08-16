@@ -29,6 +29,13 @@ export interface FinalValues {
   extraInfos: any;
 }
 
+export interface IRemoveFieldParams {
+  fieldNames: (
+    | string
+    | { ancestors?: { name: string; rowId: number }[]; name: string }
+  )[];
+}
+
 export interface IFieldWatchParams {
   fieldNames: (
     | string
