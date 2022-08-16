@@ -1133,7 +1133,7 @@ export function FormProvider(props: {
   children: any;
   options?: FormProviderOptions;
 }) {
-  const formId = useRef<string>(generateFormId());
+  const formId = useRef<string>(props?.options?.formId ?? generateFormId());
 
   useEffect(() => {
     const currentFormId = formId.current;
