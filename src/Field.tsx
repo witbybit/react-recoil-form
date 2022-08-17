@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { ReactElement } from 'react';
 import { useField } from './FormProvider';
 import { IAncestorInput } from './types';
 
@@ -8,15 +8,16 @@ interface IRenderProps {
   error: string | null | undefined;
 }
 
+type RenderProps = (props: IRenderProps) => void;
+
 interface IField {
-  children?: any;
+  children?: RenderProps | ReactElement;
   name: string;
   required?: boolean;
   defaultValue?: any;
   handleChange?: (value?: any) => void;
   ancestors?: IAncestorInput[];
-  render?: (props: IRenderProps) => void;
-  validate?: (value?: any, otherParams?: any) => string | undefined;
+  validate?: (value?: any, otherParams?: any) => string | null | undefined;
 }
 
 export const Field = (props: IField) => {
@@ -27,7 +28,6 @@ export const Field = (props: IField) => {
     handleChange,
     defaultValue,
     ancestors,
-    render,
     validate,
   } = props;
   const { fieldValue, setFieldValue, error } = useField({
@@ -37,37 +37,36 @@ export const Field = (props: IField) => {
     validate: validate
       ? validate
       : (value) => {
-          if (required) {
-            if (!value) {
-              return 'Required';
-            }
+          if (required && !value) {
+            return 'Required';
           }
           return null;
         },
   });
 
-  const fieldProps: any = {
+  const fieldProps = {
     value: fieldValue ?? '',
     onChange: (e: any) => {
       const val = e?.target?.value;
-      handleChange?.(val);
       setFieldValue(val);
+      handleChange?.(val);
     },
     error,
-    // touched,
   };
 
-  if (render) {
+  if (typeof children === 'function') {
     return (
-      <>{render({ value: fieldValue ?? '', onChange: setFieldValue, error })}</>
+      <>
+        {children({ value: fieldValue ?? '', onChange: setFieldValue, error })}
+      </>
     );
+  } else {
+    const childrenWithProps = React.Children.map(children, (child) => {
+      if (React.isValidElement(child)) {
+        return React.cloneElement(child, fieldProps);
+      }
+      return child;
+    });
+    return <>{childrenWithProps}</>;
   }
-
-  const childrenWithProps = React.Children.map(children, (child) => {
-    if (React.isValidElement(child)) {
-      return React.cloneElement(child, fieldProps);
-    }
-    return child;
-  });
-  return <Fragment>{childrenWithProps}</Fragment>;
 };
