@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Field, useForm, withFormProvider } from '../../src';
-import { FileField, InputField } from './components/Fields';
 import { Results } from '..';
+import { Field, useForm, withFormProvider } from '../../src';
 
 function ExtraInfoForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
@@ -20,16 +19,22 @@ function ExtraInfoForm(props) {
           }}
         >
           <Field name="username">
-            <input type="text" placeholder="Username" />
+            {({ value, onChange }) => (
+              <input
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                type="text"
+                placeholder="Username"
+              />
+            )}
           </Field>
 
           <Field name="email">
             <input type="text" placeholder="Email" />
           </Field>
 
-          <Field
-            name="accept"
-            render={({ value, onChange }) => (
+          <Field name="accept">
+            {({ value, onChange }) => (
               <label>
                 <input
                   checked={!!value}
@@ -39,7 +44,7 @@ function ExtraInfoForm(props) {
                 Do you accept?
               </label>
             )}
-          ></Field>
+          </Field>
         </div>
 
         <br />
