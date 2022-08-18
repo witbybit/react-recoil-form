@@ -406,7 +406,8 @@ export function useFormContext() {
             );
           }
         }
-      }
+      },
+    [formId]
   );
 
   return { getValue, setValue, getValues, checkIsDirty, removeFields };
@@ -1088,21 +1089,24 @@ export function useForm(props: IFormProps) {
         const res = onSubmit?.(values, extraInfos);
         if (res && res.then) {
           return res
-            .then(() => {
-              // Make initial values same as final values in order to set isDirty as false after submit
-              updateInitialValues(
-                props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-                skipUnregister,
-                props?.reinitializeOnSubmit ? {} : extraInfos
-              );
+            .then((isSuccess?: boolean) => {
+              // Assuming isSuccess to be true by default
+              if (isSuccess !== false) {
+                // Make initial values same as final values in order to set isDirty as false after submit
+                updateInitialValues(
+                  props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+                  skipUnregister,
+                  props?.reinitializeOnSubmit ? {} : extraInfos
+                );
+              }
               setFormState({ isSubmitting: false });
             })
-            .catch((err: any) => {
+            .catch(() => {
               setFormState({ isSubmitting: false });
-              console.warn(
-                `Warning: An unhandled error was caught from onSubmit()`,
-                err
-              );
+              // console.warn(
+              //   `Warning: An unhandled error was caught from onSubmit()`,
+              //   err
+              // );
             });
         } else {
           setFormState({ isSubmitting: false });
