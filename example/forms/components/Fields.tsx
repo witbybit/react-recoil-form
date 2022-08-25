@@ -24,6 +24,7 @@ export interface InputFieldProps {
   disabled?: boolean;
   onChange?: (value: any) => void;
   defaultValue?: number | string;
+  max?: number;
 }
 
 export function FileField(props: FileFieldProps) {

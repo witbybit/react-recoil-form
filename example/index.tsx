@@ -5,6 +5,7 @@ import { useFormValues, useIsDirty } from '../src';
 import DirtyCheckForm from './forms/DirtyCheckForm';
 import ExtraInfoForm from './forms/FileUploadForm';
 import FormContext from './forms/FormContext';
+import FieldValidateForm from './forms/FieldValidateForm';
 import MultipleSimpleForms from './forms/MultipleSimpleForms';
 import MultiStepForm from './forms/MultiStepForm';
 import SimpleFieldArray from './forms/SimpleFieldArray';
@@ -46,6 +47,11 @@ const formExamples = [
     id: 'check-is-dirty',
     title: 'Is Dirty Prop',
     getComponent: (props) => <DirtyCheckForm {...props} />,
+  },
+  {
+    id: 'field-validate',
+    title: 'Field validate function',
+    getComponent: (props) => <FieldValidateForm {...props} />,
   },
 ];
 
