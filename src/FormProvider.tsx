@@ -197,7 +197,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         error: val.validate ? val.validate(fieldValue, otherParams) : undefined,
       })
     );
-  }, [fieldValue, otherParams]);
+  }, [fieldValue, otherParams, setAtomValue]);
 
   useEffect(() => {
     if (
