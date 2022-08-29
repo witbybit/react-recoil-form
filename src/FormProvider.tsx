@@ -194,7 +194,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   useEffect(() => {
     setAtomValue((val) =>
       Object.assign({}, val, {
-        error: validate ? validate(fieldValue, otherParams) : undefined,
+        error: val.validate ? val.validate(fieldValue, otherParams) : undefined,
       })
     );
   }, [fieldValue, otherParams]);
@@ -226,7 +226,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           } as Partial<IFieldAtomValue>)
         );
       },
-      [otherParams, validate, setAtomValue]
+      [setAtomValue]
     ),
     error: touched ? error : undefined,
     onBlur: useCallback(
