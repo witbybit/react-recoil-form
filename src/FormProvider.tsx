@@ -192,6 +192,14 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   }, [resetField]);
 
   useEffect(() => {
+    setAtomValue((val) =>
+      Object.assign({}, val, {
+        error: validate ? validate(fieldValue, otherParams) : undefined,
+      })
+    );
+  }, [fieldValue, otherParams]);
+
+  useEffect(() => {
     if (
       !oldOtherParamsRef.current ||
       !isDeepEqual(oldOtherParamsRef.current, otherParams)
@@ -215,7 +223,6 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           Object.assign({}, val, {
             data,
             extraInfo,
-            error: validate ? validate(data, otherParams) : undefined,
           } as Partial<IFieldAtomValue>)
         );
       },
@@ -297,8 +304,7 @@ export function useFormContext() {
           typeof key === 'string'
             ? { type: 'field', name: key, ancestors: [] }
             : key;
-        // TODO: trigger field/field-array validation on set
-        // similar to setFieldValue
+        // Note that validation will be triggered within the useField hook
         if (fieldKey.type === 'field') {
           set(
             fieldAtomFamily({

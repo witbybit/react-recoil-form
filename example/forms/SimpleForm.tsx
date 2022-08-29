@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useForm, withFormProvider } from '../../src';
+import { useForm, useFormContext, withFormProvider } from '../../src';
 import { InputField } from './components/Fields';
 import { Results } from '../';
 
@@ -10,6 +10,7 @@ function SimpleForm(props) {
     reinitializeOnSubmit: true,
     initialValues: props.initialValues ?? { name: 'Abc', email: '' },
   });
+  const { setValue } = useFormContext();
   return (
     <React.Fragment>
       <form onSubmit={handleSubmit}>
@@ -19,6 +20,9 @@ function SimpleForm(props) {
           type="number"
           disabled={false}
           defaultValue={100}
+          validate={(value) =>
+            value <= 100 ? 'Value must be greater than 100' : null
+          }
         />
         <InputField
           name="email"
@@ -39,6 +43,12 @@ function SimpleForm(props) {
             onClick={() => resetInitialValues({ name: 'Def' })}
           >
             Change Initial Values
+          </button>
+          <button
+            type="button"
+            onClick={() => setValue('value', { value: 101 })}
+          >
+            Set value to 101
           </button>
         </div>
         <div>
