@@ -73,7 +73,20 @@ export interface IFieldProps<D> {
   ancestors?: { name: string; rowId: number }[];
   name: string;
   defaultValue?: D;
+  /**
+   * validate is only allowed to be set once when useField() is invoked.
+   * If you need to use some external state for validation, please use validateCallback instead
+   */
   validate?: (value?: D, otherParams?: any) => string | undefined | null;
+  /**
+   * validateCallback will be a function wrapped in useCallback() and this will be updated
+   * for internal state changes. Please be careful to make sure it has a fixed list of dependencies
+   * and doesn't change all the time since that can cause an infinite loop.
+   */
+  validateCallback?: (
+    value?: D,
+    otherParams?: any
+  ) => string | undefined | null;
   /**
    * Useful for referencing other fields in validation
    * */

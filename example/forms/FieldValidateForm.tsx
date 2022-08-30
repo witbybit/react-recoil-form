@@ -47,13 +47,16 @@ function FormWrapper({ max }) {
 function InputField(props: InputFieldProps) {
   const field = useField<string | number>({
     name: props.name,
-    validate: (value: any) => {
-      console.log('validate max:', props.max);
-      if (props.max && value > props.max) {
-        return `Input cannot be more than ${props.max}`;
-      }
-      return '';
-    },
+    validateCallback: React.useCallback(
+      (value: any) => {
+        console.log('validate max:', props.max);
+        if (props.max && value > props.max) {
+          return `Input cannot be more than ${props.max}`;
+        }
+        return '';
+      },
+      [props.max]
+    ),
     defaultValue: props.defaultValue,
   });
 

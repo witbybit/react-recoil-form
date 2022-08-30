@@ -74,8 +74,15 @@ function FormValuesObserver() {
 
 // TODO: Check if useField should be rendered again when same params are passed again
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
-  const { ancestors, name, validate, defaultValue, depFields, skipUnregister } =
-    props;
+  const {
+    ancestors,
+    name,
+    validate,
+    validateCallback,
+    defaultValue,
+    depFields,
+    skipUnregister,
+  } = props;
   const formId = useContext(FormIdContext);
   const initialValues = useRecoilValue(formInitialValuesAtom(formId));
   const [atomValue, setAtomValue] = useRecoilState(
@@ -159,13 +166,22 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   useEffect(() => {
     if (atomValue.initVer < initialValues.version) {
       initializeFieldValue();
-    } else if (validate && !atomValue.validate) {
+    } else if (validate && !atomValue.validate && !validateCallback) {
       setAtomValue((val) =>
         Object.assign({}, val, {
           validate,
         } as Partial<IFieldAtomValue>)
       );
-    } else if (atomValue.initVer === initialValues.version && defaultValue) {
+    } else if (validateCallback && atomValue.validate !== validateCallback) {
+      setAtomValue((val) =>
+        Object.assign({}, val, {
+          validate: validateCallback,
+        } as Partial<IFieldAtomValue>)
+      );
+    } else if (
+      atomValue.initVer === initialValues.version &&
+      defaultValue !== undefined
+    ) {
       // Useful for setting field value as default value inside field array
       setAtomValue((val) => {
         // null, '' and 0 are valid values so only if it's undefined, we set it as default value.
@@ -181,6 +197,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     atomValue.initVer,
     defaultValue,
     validate,
+    validateCallback,
     atomValue.validate,
     setAtomValue,
   ]);
@@ -192,12 +209,13 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   }, [resetField]);
 
   useEffect(() => {
-    setAtomValue((val) =>
-      Object.assign({}, val, {
-        error: val.validate ? val.validate(fieldValue, otherParams) : undefined,
-      })
-    );
-  }, [fieldValue, otherParams, setAtomValue]);
+    setAtomValue((val) => {
+      const validateFn = validateCallback ?? val.validate;
+      return Object.assign({}, val, {
+        error: validateFn ? validateFn(fieldValue, otherParams) : undefined,
+      });
+    });
+  }, [fieldValue, otherParams, setAtomValue, validateCallback]);
 
   useEffect(() => {
     if (
