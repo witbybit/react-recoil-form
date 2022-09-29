@@ -862,6 +862,7 @@ export function useForm(props: IFormProps) {
   });
   const formId = useContext(FormIdContext);
   const initValuesVer = useRef(0);
+  const isFormMounted = useRef(false);
 
   function resetDataAtoms(reset: (val: RecoilState<any>) => void) {
     if (formId) {
@@ -894,7 +895,9 @@ export function useForm(props: IFormProps) {
   );
 
   useEffect(() => {
+    isFormMounted.current = true;
     return () => {
+      isFormMounted.current = false;
       handleReset();
     };
   }, [handleReset]);
@@ -1114,23 +1117,27 @@ export function useForm(props: IFormProps) {
         if (res && res.then) {
           return res
             .then((isSuccess?: boolean) => {
-              // Assuming isSuccess to be true by default
-              if (isSuccess !== false) {
-                // Make initial values same as final values in order to set isDirty as false after submit
-                updateInitialValues(
-                  props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-                  skipUnregister,
-                  props?.reinitializeOnSubmit ? {} : extraInfos
-                );
+              if (isFormMounted.current) {
+                // Assuming isSuccess to be true by default
+                if (isSuccess !== false) {
+                  // Make initial values same as final values in order to set isDirty as false after submit
+                  updateInitialValues(
+                    props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+                    skipUnregister,
+                    props?.reinitializeOnSubmit ? {} : extraInfos
+                  );
+                }
+                setFormState({ isSubmitting: false });
               }
-              setFormState({ isSubmitting: false });
             })
             .catch(() => {
-              setFormState({ isSubmitting: false });
-              // console.warn(
-              //   `Warning: An unhandled error was caught from onSubmit()`,
-              //   err
-              // );
+              if (isFormMounted) {
+                setFormState({ isSubmitting: false });
+                // console.warn(
+                //   `Warning: An unhandled error was caught from onSubmit()`,
+                //   err
+                // );
+              }
             });
         } else {
           setFormState({ isSubmitting: false });
