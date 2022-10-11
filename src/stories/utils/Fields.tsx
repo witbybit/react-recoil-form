@@ -92,9 +92,7 @@ export function InputField(props: InputFieldProps) {
         value={field.fieldValue ?? ''}
         onBlur={field.onBlur}
       />
-      {field.error && (
-        <div className="text-red-500 text-sm mt-1">{field.error}</div>
-      )}
+      {field.error && <div className="text-red-500 text-sm">{field.error}</div>}
     </div>
   );
 }
@@ -126,7 +124,7 @@ export function TableField(props: TableFieldProps) {
               <tr key={r}>
                 <React.Fragment>
                   {props.fields.map((f) => (
-                    <td key={f.name}>
+                    <td key={f.name} className="px-2">
                       <InputField
                         ancestors={[{ name: props.name, rowId: r }]}
                         name={f.name}
@@ -135,10 +133,11 @@ export function TableField(props: TableFieldProps) {
                       />
                     </td>
                   ))}
-                  <td>
+                  <td className="px-2">
                     <div className="flex gap-2">
                       <Button
                         small
+                        color="red"
                         type="button"
                         onClick={() => tableField.remove(idx)}
                       >
@@ -147,6 +146,7 @@ export function TableField(props: TableFieldProps) {
                       <Button
                         small
                         type="button"
+                        color="emerald"
                         onClick={() =>
                           tableField.insert(
                             idx + 1,
