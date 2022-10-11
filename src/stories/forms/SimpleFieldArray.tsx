@@ -1,11 +1,18 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
+import Button from '../utils/Button';
 import { InputField, TableField, WatchField } from '../utils/Fields';
+import MetaData from '../utils/MetaData';
 
-function SimpleFieldArray(props) {
+function SimpleFieldArray() {
+  const [formData, setFormData] = React.useState({});
+
+  function onSubmit(values: any, extra: any) {
+    setFormData({ values, extra, time: new Date().toString() });
+  }
+
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
-    onSubmit: props.onSubmit,
-    onError: props.onError,
+    onSubmit,
     initialValues: {
       // items: [
       //   {
@@ -20,13 +27,14 @@ function SimpleFieldArray(props) {
     },
   });
   return (
-    <React.Fragment>
+    <div>
       <form onSubmit={handleSubmit}>
         <InputField
           name="name"
           type="text"
           validate={(val) => (!val ? 'Required' : null)}
         />
+
         <TableField
           name="items"
           fields={[
@@ -40,31 +48,41 @@ function SimpleFieldArray(props) {
             { name: 'date', type: 'date' },
           ]}
         />
+
         <WatchField
           name="totalAmount"
           fieldArrayName="items"
           colNames={['amount']}
           calculateFunc={(values) =>
-            values.reduce((acc, val) => acc + (val?.amount ?? 0), 0)
+            values.reduce(
+              (acc: number, val: any) => acc + (val?.amount ?? 0),
+              0
+            )
           }
         />
-        <br />
-        <div>
-          <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues()}>
+
+        <div className="flex gap-4">
+          <Button type="submit" primary>
+            Submit
+          </Button>
+          <Button type="button" onClick={() => resetInitialValues()}>
             Reset
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() =>
               validateFields([{ name: 'items', type: 'field-array' }])
             }
           >
             Validate
-          </button>
+          </Button>
         </div>
       </form>
-    </React.Fragment>
+
+      <br />
+
+      <MetaData formData={formData} />
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   useFieldArray,
   useFieldArrayColumnWatch,
 } from '../../FormProvider';
+import Button from './Button';
 
 interface FileFieldProps {
   name: string;
@@ -115,7 +116,9 @@ export function TableField(props: TableFieldProps) {
 
   return (
     <div>
-      <label htmlFor={props.name}>{props.name}</label>
+      <label htmlFor={props.name} className="capitalize">
+        {props.name}
+      </label>
       <table id={props.name}>
         <tbody>
           {tableField.fieldArrayProps.rowIds.map((r, idx) => {
@@ -133,23 +136,27 @@ export function TableField(props: TableFieldProps) {
                     </td>
                   ))}
                   <td>
-                    <button
-                      type="button"
-                      onClick={() => tableField.remove(idx)}
-                    >
-                      Remove
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        tableField.insert(
-                          idx + 1,
-                          tableField.getFieldArrayValue()[idx]
-                        )
-                      }
-                    >
-                      Duplicate Row
-                    </button>
+                    <div className="flex gap-2">
+                      <Button
+                        small
+                        type="button"
+                        onClick={() => tableField.remove(idx)}
+                      >
+                        Remove
+                      </Button>
+                      <Button
+                        small
+                        type="button"
+                        onClick={() =>
+                          tableField.insert(
+                            idx + 1,
+                            tableField.getFieldArrayValue()[idx]
+                          )
+                        }
+                      >
+                        Duplicate Row
+                      </Button>
+                    </div>
                   </td>
                 </React.Fragment>
               </tr>
@@ -157,9 +164,9 @@ export function TableField(props: TableFieldProps) {
           })}
         </tbody>
       </table>
-      <button type="button" onClick={() => tableField.append()}>
+      <Button small type="button" onClick={() => tableField.append()}>
         Add Row
-      </button>
+      </Button>
       {tableField?.error && (
         <div style={{ color: 'red' }}>{tableField.error}</div>
       )}
@@ -183,9 +190,17 @@ export function WatchField(props: WatchFieldProps) {
     ? props.calculateFunc(res.values)
     : JSON.stringify(res.values ?? {});
   return (
-    <div>
-      <label htmlFor={props.name}>{props.name}</label>
-      <input id={props.name} type="text" disabled value={value} />
+    <div className="flex gap-2 items-center my-4">
+      <label htmlFor={props.name} className="capitalize">
+        {props.name}
+      </label>
+      <input
+        className="bg-gray-200 border-0 rounded-lg"
+        id={props.name}
+        type="text"
+        disabled
+        value={value}
+      />
     </div>
   );
 }

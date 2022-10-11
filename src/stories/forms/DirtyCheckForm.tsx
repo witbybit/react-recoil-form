@@ -1,8 +1,10 @@
 import { withFormProvider, useForm, useIsDirty } from '../..';
 import React, { useEffect, useState } from 'react';
 import { InputField } from '../utils/Fields';
+import MetaData from '../utils/MetaData';
+import Button from '../utils/Button';
 
-const allLevelInitialValues = {
+const allLevelInitialValues: any = {
   level1: {
     name: 'abc',
     age: '123',
@@ -26,7 +28,7 @@ const levels = [
   },
 ];
 
-function App() {
+function DirtyCheckForm() {
   const [formData, setFormData] = useState({});
   const [data, setData] = useState({});
   const [currentLevel, setCurrentLevel] = useState('level1');
@@ -57,19 +59,13 @@ function App() {
     <div>
       <div>Dirty State</div>
       <div>
-        <div>
+        <div className="flex gap-3 my-2">
           {levels.map((l) => (
             <span
+              className="bg-blue-100 p-3 cursor-pointer py-1 rounded-lg"
               key={l.id}
               onClick={() => {
                 setCurrentLevel(l.id);
-              }}
-              style={{
-                cursor: 'pointer',
-                marginLeft: '10px',
-                marginBottom: '5px',
-                textDecoration: 'underline',
-                color: 'blue',
               }}
             >
               {l.title}
@@ -86,33 +82,33 @@ function App() {
             <InputField name="age" label="Age" type="text" />
           </div>
 
-          <div>
-            <button type="submit">Submit</button>
-            <button
+          <div className="flex gap-4">
+            <Button primary type="submit">
+              Submit
+            </Button>
+            <Button
               onClick={() => resetInitialValues(currentInitialValues)}
               type="reset"
             >
               Reset
-            </button>
+            </Button>
           </div>
         </form>
       </div>
 
+      <br />
+
       <div>
-        <pre>
-          {JSON.stringify(
-            {
-              isDirty,
-              formData,
-              currentInitialValues: currentInitialValues,
-            },
-            null,
-            2
-          )}
-        </pre>
+        <MetaData
+          formData={{
+            isDirty,
+            formData,
+            currentInitialValues: currentInitialValues,
+          }}
+        />
       </div>
     </div>
   );
 }
 
-export default withFormProvider(App);
+export default withFormProvider(DirtyCheckForm);
