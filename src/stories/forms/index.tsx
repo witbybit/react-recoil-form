@@ -4,6 +4,8 @@ import { RecoilRoot } from 'recoil';
 import { useFormValues, useIsDirty } from '../..';
 import DirtyCheckForm from './DirtyCheckForm';
 import FieldForm from './FieldForm';
+import FieldValidateForm from './FieldValidateForm';
+import FileUploadForm from './FileUploadForm';
 import FormContext from './FormContext';
 import MultipleSimpleForms from './MultipleSimpleForms';
 import MultiStepForm from './MultiStepForm';
@@ -34,7 +36,7 @@ const formExamples = [
   {
     id: 'file-extra-info',
     title: 'File Upload (using extra info)',
-    getComponent: (props) => <ExtraInfoForm {...props} />,
+    getComponent: (props) => <FileUploadForm {...props} />,
   },
   {
     id: 'form-context',
@@ -50,6 +52,11 @@ const formExamples = [
     id: 'fields-form',
     title: 'Fields',
     getComponent: (props) => <FieldForm {...props} />,
+  },
+  {
+    id: 'field-validate',
+    title: 'Field validate function',
+    getComponent: (props) => <FieldValidateForm {...props} />,
   },
 ];
 

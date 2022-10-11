@@ -40,6 +40,7 @@ import {
   IFormContextFieldInput,
   IIsDirtyProps,
   InitialValues,
+  IRemoveFieldParams,
 } from './types';
 import {
   getPathInObj,
@@ -73,8 +74,15 @@ function FormValuesObserver() {
 
 // TODO: Check if useField should be rendered again when same params are passed again
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
-  const { ancestors, name, validate, defaultValue, depFields, skipUnregister } =
-    props;
+  const {
+    ancestors,
+    name,
+    validate,
+    validateCallback,
+    defaultValue,
+    depFields,
+    skipUnregister,
+  } = props;
   const formId = useContext(FormIdContext);
   const initialValues = useRecoilValue(formInitialValuesAtom(formId));
   const [atomValue, setAtomValue] = useRecoilState(
@@ -158,13 +166,22 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   useEffect(() => {
     if (atomValue.initVer < initialValues.version) {
       initializeFieldValue();
-    } else if (validate && !atomValue.validate) {
+    } else if (validate && !atomValue.validate && !validateCallback) {
       setAtomValue((val) =>
         Object.assign({}, val, {
           validate,
         } as Partial<IFieldAtomValue>)
       );
-    } else if (atomValue.initVer === initialValues.version && defaultValue) {
+    } else if (validateCallback && atomValue.validate !== validateCallback) {
+      setAtomValue((val) =>
+        Object.assign({}, val, {
+          validate: validateCallback,
+        } as Partial<IFieldAtomValue>)
+      );
+    } else if (
+      atomValue.initVer === initialValues.version &&
+      defaultValue !== undefined
+    ) {
       // Useful for setting field value as default value inside field array
       setAtomValue((val) => {
         // null, '' and 0 are valid values so only if it's undefined, we set it as default value.
@@ -180,6 +197,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     atomValue.initVer,
     defaultValue,
     validate,
+    validateCallback,
     atomValue.validate,
     setAtomValue,
   ]);
@@ -189,6 +207,15 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
       resetField();
     };
   }, [resetField]);
+
+  useEffect(() => {
+    setAtomValue((val) => {
+      const validateFn = validateCallback ?? val.validate;
+      return Object.assign({}, val, {
+        error: validateFn ? validateFn(fieldValue, otherParams) : undefined,
+      });
+    });
+  }, [fieldValue, otherParams, setAtomValue, validateCallback]);
 
   useEffect(() => {
     if (
@@ -214,11 +241,10 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           Object.assign({}, val, {
             data,
             extraInfo,
-            error: validate ? validate(data, otherParams) : undefined,
           } as Partial<IFieldAtomValue>)
         );
       },
-      [otherParams, validate, setAtomValue]
+      [setAtomValue]
     ),
     error: touched ? error : undefined,
     onBlur: useCallback(
@@ -233,8 +259,9 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
 }
 
 export function useFieldWatch(props: IFieldWatchParams) {
-  const { fieldNames } = props;
-  const formId = useContext(FormIdContext);
+  const { fieldNames, formId: extFormId } = props;
+  const contextFormId = useContext(FormIdContext);
+  const formId = extFormId ?? contextFormId;
   const fieldNameParams =
     fieldNames?.map((f) =>
       typeof f === 'string' ? { name: f, formId } : { ...f, formId }
@@ -245,8 +272,9 @@ export function useFieldWatch(props: IFieldWatchParams) {
 }
 
 export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
-  const { fieldArrayName, fieldNames } = props;
-  const formId = useContext(FormIdContext);
+  const { fieldArrayName, fieldNames, formId: extFormId } = props;
+  const contextFormId = useContext(FormIdContext);
+  const formId = extFormId ?? contextFormId;
   const selector = fieldArrayColAtomValueSelectorFamily({
     formId,
     fieldArrayName,
@@ -294,8 +322,7 @@ export function useFormContext() {
           typeof key === 'string'
             ? { type: 'field', name: key, ancestors: [] }
             : key;
-        // TODO: trigger field/field-array validation on set
-        // similar to setFieldValue
+        // Note that validation will be triggered within the useField hook
         if (fieldKey.type === 'field') {
           set(
             fieldAtomFamily({
@@ -379,7 +406,35 @@ export function useFormContext() {
     [formId]
   );
 
-  return { getValue, setValue, getValues, checkIsDirty };
+  const removeFields = useRecoilCallback<any, any>(
+    ({ reset }) =>
+      (params: IRemoveFieldParams) => {
+        for (const fieldName of params.fieldNames) {
+          if (typeof fieldName === 'string') {
+            reset(
+              fieldAtomFamily({
+                ancestors: [],
+                formId,
+                name: fieldName,
+                type: 'field',
+              })
+            );
+          } else {
+            reset(
+              fieldAtomFamily({
+                ancestors: fieldName.ancestors ?? [],
+                formId,
+                name: fieldName.name,
+                type: 'field',
+              })
+            );
+          }
+        }
+      },
+    [formId]
+  );
+
+  return { getValue, setValue, getValues, checkIsDirty, removeFields };
 }
 
 export function useFieldArray(props: IFieldArrayProps) {
@@ -807,6 +862,7 @@ export function useForm(props: IFormProps) {
   });
   const formId = useContext(FormIdContext);
   const initValuesVer = useRef(0);
+  const isFormMounted = useRef(false);
 
   function resetDataAtoms(reset: (val: RecoilState<any>) => void) {
     if (formId) {
@@ -839,7 +895,9 @@ export function useForm(props: IFormProps) {
   );
 
   useEffect(() => {
+    isFormMounted.current = true;
     return () => {
+      isFormMounted.current = false;
       handleReset();
     };
   }, [handleReset]);
@@ -1058,21 +1116,28 @@ export function useForm(props: IFormProps) {
         const res = onSubmit?.(values, extraInfos);
         if (res && res.then) {
           return res
-            .then(() => {
-              // Make initial values same as final values in order to set isDirty as false after submit
-              updateInitialValues(
-                props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-                skipUnregister,
-                props?.reinitializeOnSubmit ? {} : extraInfos
-              );
-              setFormState({ isSubmitting: false });
+            .then((isSuccess?: boolean) => {
+              if (isFormMounted.current) {
+                // Assuming isSuccess to be true by default
+                if (isSuccess !== false) {
+                  // Make initial values same as final values in order to set isDirty as false after submit
+                  updateInitialValues(
+                    props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+                    skipUnregister,
+                    props?.reinitializeOnSubmit ? {} : extraInfos
+                  );
+                }
+                setFormState({ isSubmitting: false });
+              }
             })
-            .catch((err: any) => {
-              setFormState({ isSubmitting: false });
-              console.warn(
-                `Warning: An unhandled error was caught from onSubmit()`,
-                err
-              );
+            .catch(() => {
+              if (isFormMounted) {
+                setFormState({ isSubmitting: false });
+                // console.warn(
+                //   `Warning: An unhandled error was caught from onSubmit()`,
+                //   err
+                // );
+              }
             });
         } else {
           setFormState({ isSubmitting: false });
@@ -1118,6 +1183,11 @@ interface FormProviderOptions {
    * Skip dirty check and real-time observer for form values. This can result in better performance in some cases.
    */
   skipValuesObserver?: boolean;
+  /**
+   * This only needs to be specified for advanced cases where you want to watch fields outside the current hierarchy.
+   * Note that skipRecoilRoot should also be set to true for this use case.
+   */
+  formId?: string;
 }
 
 const FormIdContext = React.createContext('');
@@ -1126,7 +1196,7 @@ export function FormProvider(props: {
   children: any;
   options?: FormProviderOptions;
 }) {
-  const formId = useRef<string>(generateFormId());
+  const formId = useRef<string>(props?.options?.formId ?? generateFormId());
 
   useEffect(() => {
     const currentFormId = formId.current;

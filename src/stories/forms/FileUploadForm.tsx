@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
 import { FileField, InputField } from '../utils/Fields';
 
-function ExtraInfoForm(props) {
+function FileUploadForm(props) {
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit: props.onSubmit,
     onError: props.onError,
@@ -24,4 +24,4 @@ function ExtraInfoForm(props) {
   );
 }
 
-export default withFormProvider(ExtraInfoForm);
+export default withFormProvider(FileUploadForm);
