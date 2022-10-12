@@ -3,12 +3,11 @@
   "version": "0.2.5-6",
   "license": "MIT",
   "author": "Wit By Bit",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
-    "dist/**",
-    "src/**"
+    "dist/**"
   ],
   "engines": {
     "node": ">=16"
