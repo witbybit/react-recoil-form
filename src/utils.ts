@@ -32,7 +32,7 @@ export function setPathInObj(
   fieldValue: any,
   ancestors?: { name: string; index: number }[]
 ) {
-  if (path && fieldValue && obj) {
+  if (path && obj) {
     const value = cloneDeep(fieldValue);
     if (ancestors?.length) {
       let prefix = '';

@@ -26,7 +26,10 @@ export const formInitialValuesAtom = atomFamily<InitialValues, string>({
     values: {},
     version: 0,
     extraInfos: {},
-    skipUnregister: undefined,
+    settings: {
+      skipUnregister: undefined,
+      skipUnusedInitialValues: undefined,
+    },
   },
 });
 

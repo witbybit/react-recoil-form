@@ -147,7 +147,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         // since field array reset will reset those fields
         if (
           !skipUnregister &&
-          !initialValues.skipUnregister &&
+          !initialValues.settings?.skipUnregister &&
           !ancestors?.length
         ) {
           reset(
@@ -723,7 +723,7 @@ export function useFieldArray(props: IFieldArrayProps) {
         });
         const value = get(fieldArrayAtom);
         const fieldArrayAtomValue = value as IFieldArrayAtomValue;
-        if (!skipUnregister && !initialValues.skipUnregister) {
+        if (!skipUnregister && !initialValues.settings?.skipUnregister) {
           for (const rowId of fieldArrayAtomValue.rowIds) {
             resetFieldArrayRow(
               formId,
@@ -786,16 +786,22 @@ interface IFormProps {
    * E.g. After changing password, you want to clear all the input fields
    */
   reinitializeOnSubmit?: boolean;
+  /**
+   * If true, initial values not mapped to  form fields, will not come in the output
+   */
+  skipUnusedInitialValues?: boolean;
 }
 
 const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
   const initialValues = get(formInitialValuesAtom(formId)) as InitialValues;
-  const values: any = initialValues.values
-    ? cloneDeep(initialValues.values)
-    : {};
-  const extraInfos: any = initialValues.extraInfos
-    ? cloneDeep(initialValues.extraInfos)
-    : {};
+  const values: any =
+    !initialValues.settings?.skipUnusedInitialValues && initialValues.values
+      ? cloneDeep(initialValues.values)
+      : {};
+  const extraInfos: any =
+    !initialValues.settings?.skipUnusedInitialValues && initialValues.extraInfos
+      ? cloneDeep(initialValues.extraInfos)
+      : {};
   const fieldArrays = combinedFieldAtomValues[formId]
     ? Object.values(combinedFieldAtomValues[formId]?.fieldArrays ?? {})
     : [];
@@ -856,7 +862,14 @@ const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
 };
 
 export function useForm(props: IFormProps) {
-  const { initialValues, onError, onSubmit, skipUnregister, validate } = props;
+  const {
+    initialValues,
+    onError,
+    onSubmit,
+    skipUnregister,
+    validate,
+    skipUnusedInitialValues,
+  } = props;
   const [formState, setFormState] = useState<{ isSubmitting: boolean }>({
     isSubmitting: false,
   });
@@ -904,7 +917,14 @@ export function useForm(props: IFormProps) {
 
   const updateInitialValues = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
-      (values?: any, skipUnregister?: boolean, extraInfos?: any) => {
+      (
+        values?: any,
+        settings?: {
+          skipUnregister?: boolean;
+          skipUnusedInitialValues?: boolean;
+        },
+        extraInfos?: any
+      ) => {
         resetDataAtoms(reset);
         initValuesVer.current = initValuesVer.current + 1;
         const existingVal = get(formInitialValuesAtom(formId));
@@ -916,7 +936,14 @@ export function useForm(props: IFormProps) {
             values: newValues,
             extraInfos: newExtraInfos,
             version: initValuesVer.current,
-            skipUnregister: skipUnregister ?? existingVal.skipUnregister,
+            settings: {
+              skipUnregister:
+                settings?.skipUnregister ??
+                existingVal.settings?.skipUnregister,
+              skipUnusedInitialValues:
+                settings?.skipUnusedInitialValues ??
+                existingVal.settings?.skipUnusedInitialValues,
+            },
           })
         );
         set(formValuesAtom(formId), {
@@ -937,9 +964,18 @@ export function useForm(props: IFormProps) {
   useEffect(() => {
     // DEVNOTE: Version is 0 when initial values are not set
     if (!initValuesVer.current) {
-      updateInitialValues(initialValues ?? {}, skipUnregister, undefined);
+      updateInitialValues(
+        initialValues ?? {},
+        { skipUnregister, skipUnusedInitialValues },
+        undefined
+      );
     }
-  }, [updateInitialValues, skipUnregister, initialValues]);
+  }, [
+    updateInitialValues,
+    skipUnregister,
+    skipUnusedInitialValues,
+    initialValues,
+  ]);
 
   const getValuesAndExtraInfo = (get: (val: RecoilValue<any>) => any) =>
     getFormValues(formId, get);
@@ -1123,7 +1159,7 @@ export function useForm(props: IFormProps) {
                   // Make initial values same as final values in order to set isDirty as false after submit
                   updateInitialValues(
                     props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-                    skipUnregister,
+                    { skipUnregister, skipUnusedInitialValues },
                     props?.reinitializeOnSubmit ? {} : extraInfos
                   );
                 }
@@ -1143,7 +1179,7 @@ export function useForm(props: IFormProps) {
           setFormState({ isSubmitting: false });
           updateInitialValues(
             props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-            skipUnregister,
+            { skipUnregister, skipUnusedInitialValues },
             props?.reinitializeOnSubmit ? {} : extraInfos
           );
         }

@@ -1,22 +1,27 @@
 import * as React from 'react';
-import { useField, useForm, withFormProvider } from '../../src';
-import { InputFieldProps } from './components/Fields';
-import { Results } from '..';
-import { useState } from 'react';
 
-function FieldValidateForm(props) {
+import { useState } from 'react';
+import { withFormProvider, useForm, useField } from '../../FormProvider';
+import Button from '../utils/Button';
+import { InputFieldProps } from '../utils/Fields';
+import MetaData from '../utils/MetaData';
+
+function FieldValidateForm() {
   const [max, setMax] = useState(2);
 
   return (
     <React.Fragment>
       <div>
         <p>Max allowed: {max}</p>
-        <button type="button" onClick={() => setMax((n) => --n)}>
-          -
-        </button>
-        <button type="button" onClick={() => setMax((n) => ++n)}>
-          +
-        </button>
+
+        <div className="flex gap-2">
+          <Button small type="button" onClick={() => setMax((n) => --n)}>
+            -
+          </Button>
+          <Button small type="button" onClick={() => setMax((n) => ++n)}>
+            +
+          </Button>
+        </div>
       </div>
       <FormWrapper max={max} />
     </React.Fragment>
@@ -25,22 +30,30 @@ function FieldValidateForm(props) {
 
 export default withFormProvider(FieldValidateForm, { skipRecoilRoot: true });
 
-function FormWrapper({ max }) {
+function FormWrapper({ max }: { max: number }) {
+  const [formData, setFormData] = useState({});
+
   const { handleSubmit } = useForm({
-    onSubmit: (vals) => console.log('submitted', vals),
-    onError: (err) => console.log('error', err),
+    onSubmit,
+    onError: (err) => console.log('Error', err),
     skipUnregister: true,
     initialValues: {},
   });
 
+  function onSubmit(values: any, extra: any) {
+    setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
+  }
+
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <InputField name="number" type="number" disabled={false} max={max} />
-        <button>submit</button>
+        <Button primary>submit</Button>
       </form>
-      <Results />
-    </React.Fragment>
+
+      <MetaData formData={formData} />
+    </div>
   );
 }
 
@@ -61,10 +74,16 @@ function InputField(props: InputFieldProps) {
   });
 
   return (
-    <div>
-      <label htmlFor={props.name}>{props.label ?? props.name}</label>
+    <div className="my-4">
+      <label
+        className="block text-sm font-medium text-gray-700 capitalize mb-1"
+        htmlFor={props.name}
+      >
+        {props.label ?? props.name}
+      </label>
       <input
         id={props.name}
+        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300 rounded-md"
         type={props.type}
         name={props.name}
         disabled={props.disabled}

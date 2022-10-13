@@ -21,7 +21,7 @@ export interface InitialValues {
   values: any;
   extraInfos: any;
   version: number;
-  skipUnregister?: boolean;
+  settings?: { skipUnregister?: boolean; skipUnusedInitialValues?: boolean };
 }
 
 export interface FinalValues {
