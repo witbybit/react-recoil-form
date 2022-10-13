@@ -32,34 +32,37 @@ export function setPathInObj(
   fieldValue: any,
   ancestors?: { name: string; index: number }[]
 ) {
-  const value = cloneDeep(fieldValue);
-  if (ancestors?.length) {
-    let prefix = '';
-    for (const ancestor of ancestors) {
-      prefix = prefix + `${ancestor.name}[${ancestor.index}].`;
-    }
-    path = prefix + path;
-  }
-  const pathArray = path.matchAll(/([^[.\]])+/g);
-  let pathMatch = pathArray.next();
-  let key: string = '';
-  let objInFocus = obj;
-  while (!pathMatch.done) {
-    const match = pathMatch.value;
-    const nextPathMatch = pathArray.next();
-    const isLastKey = nextPathMatch.done;
-    const nextMatch = nextPathMatch.value;
-    key = match[0];
-    const isKeyArrIdx = !isLastKey && path.charAt(nextMatch.index - 1) === '[';
-    if (isLastKey) {
-      objInFocus[key] = value;
-    } else {
-      if (objInFocus[key] === undefined || objInFocus[key] === null) {
-        objInFocus[key] = isKeyArrIdx ? [] : {};
+  if (path && obj) {
+    const value = cloneDeep(fieldValue);
+    if (ancestors?.length) {
+      let prefix = '';
+      for (const ancestor of ancestors) {
+        prefix = prefix + `${ancestor.name}[${ancestor.index}].`;
       }
-      objInFocus = objInFocus[key];
+      path = prefix + path;
     }
-    pathMatch = nextPathMatch;
+    const pathArray = path.matchAll(/([^[.\]])+/g);
+    let pathMatch = pathArray.next();
+    let key: string = '';
+    let objInFocus = obj;
+    while (!pathMatch.done) {
+      const match = pathMatch.value;
+      const nextPathMatch = pathArray.next();
+      const isLastKey = nextPathMatch.done;
+      const nextMatch = nextPathMatch.value;
+      key = match[0];
+      const isKeyArrIdx =
+        !isLastKey && path.charAt(nextMatch.index - 1) === '[';
+      if (isLastKey) {
+        objInFocus[key] = value;
+      } else {
+        if (objInFocus[key] === undefined || objInFocus[key] === null) {
+          objInFocus[key] = isKeyArrIdx ? [] : {};
+        }
+        objInFocus = objInFocus[key];
+      }
+      pathMatch = nextPathMatch;
+    }
   }
   return obj;
 }

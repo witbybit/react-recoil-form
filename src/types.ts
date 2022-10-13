@@ -21,7 +21,7 @@ export interface InitialValues {
   values: any;
   extraInfos: any;
   version: number;
-  skipUnregister?: boolean;
+  settings?: { skipUnregister?: boolean; skipUnusedInitialValues?: boolean };
 }
 
 export interface FinalValues {
@@ -29,17 +29,34 @@ export interface FinalValues {
   extraInfos: any;
 }
 
-export interface IFieldWatchParams {
+export interface IRemoveFieldParams {
   fieldNames: (
     | string
     | { ancestors?: { name: string; rowId: number }[]; name: string }
   )[];
 }
 
+export interface IFieldWatchParams {
+  fieldNames: (
+    | string
+    | { ancestors?: { name: string; rowId: number }[]; name: string }
+  )[];
+  /**
+   * This is needed only for the advanced case of watching field outside the FormProvider hierarchy (assuming a formId was specified).
+   * Ideally this should never be defined.
+   */
+  formId?: string;
+}
+
 export interface IFieldArrayColWatchParams {
   ancestors?: { name: string; rowId: number }[];
   fieldArrayName: string;
   fieldNames?: string[];
+  /**
+   * This is optional and needed only for watching field outside the FormProvider hierarchy (assuming a formId was specified).
+   * Ideally this should never be defined.
+   */
+  formId?: string;
 }
 
 export type IFieldType = 'field' | 'field-array';
@@ -56,7 +73,20 @@ export interface IFieldProps<D> {
   ancestors?: { name: string; rowId: number }[];
   name: string;
   defaultValue?: D;
+  /**
+   * validate is only allowed to be set once when useField() is invoked.
+   * If you need to use some external state for validation, please use validateCallback instead
+   */
   validate?: (value?: D, otherParams?: any) => string | undefined | null;
+  /**
+   * validateCallback will be a function wrapped in useCallback() and this will be updated
+   * for internal state changes. Please be careful to make sure it has a fixed list of dependencies
+   * and doesn't change all the time since that can cause an infinite loop.
+   */
+  validateCallback?: (
+    value?: D,
+    otherParams?: any
+  ) => string | undefined | null;
   /**
    * Useful for referencing other fields in validation
    * */
