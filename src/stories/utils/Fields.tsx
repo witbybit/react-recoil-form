@@ -27,6 +27,12 @@ export interface InputFieldProps {
   defaultValue?: number | string;
   max?: number;
 }
+interface SelectFieldProps extends Omit<InputFieldProps, 'type'> {
+  options: {
+    label: string;
+    value: string;
+  }[];
+}
 
 export function FileField(props: FileFieldProps) {
   const field = useField<IFileType | null>({
@@ -92,6 +98,48 @@ export function InputField(props: InputFieldProps) {
         value={field.fieldValue ?? ''}
         onBlur={field.onBlur}
       />
+      {field.error && <div className="text-red-500 text-sm">{field.error}</div>}
+    </div>
+  );
+}
+
+export function SelectField(props: SelectFieldProps) {
+  const field = useField<string | number>({
+    ancestors: props.ancestors,
+    name: props.name,
+    validate: props.validate,
+    defaultValue: props.defaultValue,
+    depFields: props.depFields,
+  });
+  return (
+    <div className="flex flex-col items-start mb-4">
+      <label
+        htmlFor={props.name}
+        className="block text-sm font-medium text-gray-700 capitalize mb-1"
+      >
+        {props.label ?? props.name}
+      </label>
+
+      <select
+        id={props.name}
+        name={props.name}
+        disabled={props.disabled}
+        onChange={(evt) => {
+          field.setFieldValue(evt.target.value);
+          props.onChange?.(evt.target.value);
+        }}
+        value={field.fieldValue ?? ''}
+        onBlur={field.onBlur}
+        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300 rounded-md"
+        // className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+      >
+        {props.options?.map((opt, idx) => (
+          <option key={idx} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
       {field.error && <div className="text-red-500 text-sm">{field.error}</div>}
     </div>
   );
