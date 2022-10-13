@@ -13,11 +13,12 @@ function FileUploadForm() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   return (
-    <div className="grid grid-cols-2 gap-8">
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <InputField name="name" type="text" />
         <FileField name="file" />
         <br />

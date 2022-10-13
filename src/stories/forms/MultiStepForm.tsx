@@ -16,11 +16,12 @@ function MultiStepForm() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   return (
-    <div className="grid grid-cols-2 gap-8">
-      <form onSubmit={handleSubmit} autoComplete="off">
+    <div className="grid grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} autoComplete="off" className="col-span-2">
         <div>Step {step}</div>
         {step === 0 && (
           <InputField

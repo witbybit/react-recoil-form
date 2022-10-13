@@ -9,6 +9,7 @@ function FormContext() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   const { handleSubmit, resetInitialValues } = useForm({
@@ -16,8 +17,8 @@ function FormContext() {
     initialValues: { name: 'Abc' },
   });
   return (
-    <div className="grid grid-cols-2 gap-8">
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <ContextField name="name" type="text" />
         <InputField
           label="Email (Resets when name changes)"

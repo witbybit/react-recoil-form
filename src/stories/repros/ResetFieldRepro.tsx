@@ -31,6 +31,7 @@ function ResetFieldRepro() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   const watchValues = useFieldWatch({

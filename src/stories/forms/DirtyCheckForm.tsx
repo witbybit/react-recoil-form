@@ -36,12 +36,12 @@ function DirtyCheckForm() {
   const isDirty = useIsDirty();
 
   const onSubmit = (values: any) => {
-    console.log(values);
     setFormData(values);
     setData((d) => ({
       ...d,
       [currentLevel]: values,
     }));
+    return Promise.resolve();
   };
 
   const { handleSubmit, resetInitialValues } = useForm({
@@ -56,47 +56,47 @@ function DirtyCheckForm() {
   }, [resetInitialValues, currentInitialValues]);
 
   return (
-    <div>
-      <div>Dirty State</div>
-      <div>
-        <div className="flex gap-3 my-2">
-          {levels.map((l) => (
-            <span
-              className="bg-blue-100 p-3 cursor-pointer py-1 rounded-lg"
-              key={l.id}
-              onClick={() => {
-                setCurrentLevel(l.id);
-              }}
-            >
-              {l.title}
-            </span>
-          ))}
+    <div className="grid grid-cols-3">
+      <div className="col-span-2">
+        <div>Dirty State</div>
+        <div>
+          <div className="flex gap-3 my-2">
+            {levels.map((l) => (
+              <span
+                className="bg-blue-100 p-3 cursor-pointer py-1 rounded-lg"
+                key={l.id}
+                onClick={() => {
+                  setCurrentLevel(l.id);
+                }}
+              >
+                {l.title}
+              </span>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div>
+              <InputField name="name" label="Name" type="text" />
+            </div>
+
+            <div>
+              <InputField name="age" label="Age" type="text" />
+            </div>
+
+            <div className="flex gap-4">
+              <Button primary type="submit">
+                Submit
+              </Button>
+              <Button
+                onClick={() => resetInitialValues(currentInitialValues)}
+                type="reset"
+              >
+                Reset
+              </Button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit}>
-          <div>
-            <InputField name="name" label="Name" type="text" />
-          </div>
-
-          <div>
-            <InputField name="age" label="Age" type="text" />
-          </div>
-
-          <div className="flex gap-4">
-            <Button primary type="submit">
-              Submit
-            </Button>
-            <Button
-              onClick={() => resetInitialValues(currentInitialValues)}
-              type="reset"
-            >
-              Reset
-            </Button>
-          </div>
-        </form>
       </div>
-
-      <br />
 
       <div>
         <MetaData

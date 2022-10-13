@@ -10,6 +10,7 @@ function FieldArrayRepro() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
@@ -54,8 +55,8 @@ function FieldArrayRepro() {
   }
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3">
+      <form className="col-span-2 overflow-auto" onSubmit={handleSubmit}>
         <InputField name="name" type="text" />
 
         <div>
@@ -123,8 +124,6 @@ function FieldArrayRepro() {
           </Button>
         </div>
       </form>
-
-      <br />
 
       <MetaData formData={formData} />
     </div>

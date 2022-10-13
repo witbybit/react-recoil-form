@@ -9,6 +9,7 @@ function SimpleFieldArray() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
@@ -27,8 +28,8 @@ function SimpleFieldArray() {
     },
   });
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <InputField
           name="name"
           type="text"
@@ -78,8 +79,6 @@ function SimpleFieldArray() {
           </Button>
         </div>
       </form>
-
-      <br />
 
       <MetaData formData={formData} />
     </div>

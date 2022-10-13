@@ -15,6 +15,7 @@ function SingleFieldsForm() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve(); // to not flicker while submitting
   }
 
   return (

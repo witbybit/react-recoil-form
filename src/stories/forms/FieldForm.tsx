@@ -13,10 +13,11 @@ function FieldForm() {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3">
+      <form className="col-span-2" onSubmit={handleSubmit}>
         <div
           style={{
             display: 'flex',
@@ -71,10 +72,8 @@ function FieldForm() {
         </div>
       </form>
 
-      <br />
-
       <MetaData formData={formData} />
-    </React.Fragment>
+    </div>
   );
 }
 

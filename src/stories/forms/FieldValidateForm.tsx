@@ -42,19 +42,18 @@ function FormWrapper({ max }: { max: number }) {
 
   function onSubmit(values: any, extra: any) {
     setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
   }
 
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <InputField name="number" type="number" disabled={false} max={max} />
         <Button primary>submit</Button>
       </form>
 
-      <br />
-
       <MetaData formData={formData} />
-    </React.Fragment>
+    </div>
   );
 }
 
