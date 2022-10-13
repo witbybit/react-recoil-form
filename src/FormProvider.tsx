@@ -1159,7 +1159,7 @@ export function useForm(props: IFormProps) {
                   // Make initial values same as final values in order to set isDirty as false after submit
                   updateInitialValues(
                     props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-                    skipUnregister,
+                    { skipUnregister, skipUnusedInitialValues },
                     props?.reinitializeOnSubmit ? {} : extraInfos
                   );
                 }
@@ -1179,7 +1179,7 @@ export function useForm(props: IFormProps) {
           setFormState({ isSubmitting: false });
           updateInitialValues(
             props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-            skipUnregister,
+            { skipUnregister, skipUnusedInitialValues },
             props?.reinitializeOnSubmit ? {} : extraInfos
           );
         }
