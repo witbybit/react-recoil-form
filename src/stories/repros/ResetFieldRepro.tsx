@@ -27,6 +27,7 @@ function ResetFieldRepro() {
   const { handleSubmit } = useForm({
     onSubmit,
     initialValues: { values: [{ from: '31st oct' }] },
+    skipUnusedInitialValues: true,
   });
 
   function onSubmit(values: any, extra: any) {
@@ -50,15 +51,12 @@ function ResetFieldRepro() {
               fieldNames: [
                 { name: `values[0].from`, type: 'field' },
                 { name: `values[0].to`, type: 'field' },
-                { name: `values[0]`, type: 'field' },
               ],
             })
           }
         />
 
-        {watchValues?.filter === 'exact' ? (
-          <InputField name="values[0]" type="text" disabled={false} />
-        ) : (
+        {watchValues?.filter !== 'exact' && (
           <>
             <InputField name="values[0].from" type="text" disabled={false} />
             <InputField name="values[0].to" type="text" disabled={false} />

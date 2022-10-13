@@ -1,13 +1,14 @@
 {
   "name": "react-recoil-form",
-  "version": "0.2.5-7",
+  "version": "0.2.5-10",
   "license": "MIT",
   "author": "Wit By Bit",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "files": [
-    "dist/**"
+    "dist/**",
+    "src/**"
   ],
   "engines": {
     "node": ">=16"
@@ -31,16 +32,6 @@
     "react": ">=16",
     "recoil": ">=0.5.0"
   },
-  "size-limit": [
-    {
-      "path": "dist/index.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/index.mjs",
-      "limit": "10 KB"
-    }
-  ],
   "devDependencies": {
     "@babel/core": "^7.18.10",
     "@size-limit/preset-small-lib": "^4.10.2",
@@ -66,9 +57,9 @@
     "recoil": "0.6.1",
     "size-limit": "^5.0.5",
     "tslib": "^2.4.0",
-    "tsup": "^6.2.1",
+    "tsup": "^6.2.3",
     "typescript": "4.7.4",
-    "vite": "^3.0.5"
+    "vite": "^3.1.7"
   },
   "dependencies": {
     "core-js": "^3.18.1"
