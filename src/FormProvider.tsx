@@ -94,6 +94,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     }) as RecoilState<IFieldAtomValue<D, E>>
   );
   const oldOtherParamsRef = useRef<any>(null);
+  const oldValueRef = useRef<any>(null);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
   const depObjFields =
     depFields?.map((f) =>
@@ -208,28 +209,24 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     };
   }, [resetField]);
 
-  useEffect(() => {
-    setAtomValue((val) => {
-      const validateFn = validateCallback ?? val.validate;
-      return Object.assign({}, val, {
-        error: validateFn ? validateFn(fieldValue, otherParams) : undefined,
-      });
-    });
-  }, [fieldValue, otherParams, setAtomValue, validateCallback]);
-
+  // Trigger field validation when value changes (for e.g. setValue)
   useEffect(() => {
     if (
       !oldOtherParamsRef.current ||
-      !isDeepEqual(oldOtherParamsRef.current, otherParams)
+      !isDeepEqual(oldOtherParamsRef.current, otherParams) ||
+      !oldValueRef.current ||
+      !isDeepEqual(oldValueRef.current, fieldValue)
     ) {
       oldOtherParamsRef.current = otherParams;
-      setAtomValue((val) =>
-        Object.assign({}, val, {
-          error: validate ? validate(val.data, otherParams) : undefined,
-        })
-      );
+      oldValueRef.current = fieldValue;
+      setAtomValue((val) => {
+        const validateFn = validateCallback ?? val.validate;
+        return Object.assign({}, val, {
+          error: validateFn ? validateFn(fieldValue, otherParams) : undefined,
+        });
+      });
     }
-  }, [otherParams, validate, setAtomValue]);
+  }, [fieldValue, otherParams, setAtomValue, validateCallback]);
 
   return {
     fieldValue,
