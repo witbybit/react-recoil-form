@@ -95,6 +95,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   );
   const oldOtherParamsRef = useRef<any>(null);
   const oldValueRef = useRef<any>(null);
+  const oldTouchedRef = useRef<any>(false);
   const { data: fieldValue, extraInfo, error, touched } = atomValue;
   const depObjFields =
     depFields?.map((f) =>
@@ -212,13 +213,13 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   // Trigger field validation when value changes (for e.g. setValue)
   useEffect(() => {
     if (
-      !oldOtherParamsRef.current ||
       !isDeepEqual(oldOtherParamsRef.current, otherParams) ||
-      !oldValueRef.current ||
-      !isDeepEqual(oldValueRef.current, fieldValue)
+      !isDeepEqual(oldValueRef.current, fieldValue) ||
+      (!oldTouchedRef.current && touched)
     ) {
       oldOtherParamsRef.current = otherParams;
       oldValueRef.current = fieldValue;
+      oldTouchedRef.current = true;
       setAtomValue((val) => {
         const validateFn = validateCallback ?? val.validate;
         return Object.assign({}, val, {
@@ -226,7 +227,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
         });
       });
     }
-  }, [fieldValue, otherParams, setAtomValue, validateCallback]);
+  }, [fieldValue, otherParams, setAtomValue, validateCallback, touched]);
 
   return {
     fieldValue,
