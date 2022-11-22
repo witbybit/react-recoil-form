@@ -1199,17 +1199,11 @@ export function useForm(props: IFormProps) {
     ]
   );
 
-  const validateAllFields = useRecoilCallback(
-    ({ snapshot }) =>
-      () => {
-        const get = (atom: RecoilValue<any>) =>
-          snapshot.getLoadable(atom).contents;
-        const { values, extraInfos } = getValuesAndExtraInfo(get);
-        const errors = validateAllFieldsInternal(values, extraInfos);
-        return errors;
-      },
-    [getValuesAndExtraInfo]
-  );
+  const validateAllFields = useCallback(() => {
+    const { values, extraInfos } = getValuesAndExtraInfo();
+    const errors = validateAllFieldsInternal(values, extraInfos);
+    return errors;
+  }, [getValuesAndExtraInfo, validateAllFieldsInternal]);
 
   return {
     handleSubmit,
