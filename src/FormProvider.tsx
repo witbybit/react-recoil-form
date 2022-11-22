@@ -975,16 +975,23 @@ export function useForm(props: IFormProps) {
     initialValues,
   ]);
 
-  const getValuesAndExtraInfo = (get: (val: RecoilValue<any>) => any) =>
-    getFormValues(formId, get);
-
-  const validateFields = useRecoilCallback(
-    ({ snapshot, set }) =>
-      (fieldNames?: (string | IFormContextFieldInput)[]) => {
+  const getValuesAndExtraInfo = useRecoilCallback(
+    ({ snapshot }) =>
+      () => {
         const get = (atom: RecoilValue<any>) =>
           snapshot.getLoadable(atom).contents;
-        const extValues = getValuesAndExtraInfo(get);
+        return getFormValues(formId, get);
+      },
+    []
+  );
+
+  const validateFields = useRecoilCallback(
+    ({ set, snapshot }) =>
+      (fieldNames?: (string | IFormContextFieldInput)[]) => {
+        const extValues = getValuesAndExtraInfo();
         const errors: IFieldError[] = [];
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
         const combinedFieldArrays = Object.values(
           combinedFieldAtomValues[formId]?.fieldArrays ?? {}
         );
@@ -1077,7 +1084,7 @@ export function useForm(props: IFormProps) {
     [formId]
   );
 
-  const validateAllFields = useRecoilCallback(
+  const validateAllFieldsInternal = useRecoilCallback(
     ({ snapshot, set }) =>
       (values: any, extraInfos: any) => {
         const get = (atom: RecoilValue<any>) =>
@@ -1126,72 +1133,82 @@ export function useForm(props: IFormProps) {
     [formId]
   );
 
-  const handleSubmit = useRecoilCallback(
-    ({ snapshot }) =>
-      (e?: React.FormEvent<HTMLFormElement>) => {
-        if (e && e.preventDefault) {
-          e.preventDefault();
+  const handleSubmit = useCallback(
+    (e?: React.FormEvent<HTMLFormElement>) => {
+      if (e && e.preventDefault) {
+        e.preventDefault();
+      }
+      if (e && e.stopPropagation) {
+        e.stopPropagation();
+      }
+      const { values, extraInfos } = getValuesAndExtraInfo();
+      const errors = validateAllFieldsInternal(values, extraInfos);
+      const formErrors = validate?.(values);
+      if (errors.length || formErrors?.length) {
+        if (onError) {
+          onError(errors, formErrors, values);
         }
-        if (e && e.stopPropagation) {
-          e.stopPropagation();
-        }
-        const get = (atom: RecoilValue<any>) =>
-          snapshot.getLoadable(atom).contents;
-        const { values, extraInfos } = getValuesAndExtraInfo(get);
-        const errors = validateAllFields(values, extraInfos);
-        const formErrors = validate?.(values);
-        if (errors.length || formErrors?.length) {
-          if (onError) {
-            onError(errors, formErrors, values);
-          }
-          return;
-        }
-        setFormState({ isSubmitting: true });
-        const res = onSubmit?.(values, extraInfos);
-        if (res && res.then) {
-          return res
-            .then((isSuccess?: boolean) => {
-              if (isFormMounted.current) {
-                // Assuming isSuccess to be true by default
-                if (isSuccess !== false) {
-                  // Make initial values same as final values in order to set isDirty as false after submit
-                  updateInitialValues(
-                    props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-                    { skipUnregister, skipUnusedInitialValues },
-                    props?.reinitializeOnSubmit ? {} : extraInfos
-                  );
-                }
-                setFormState({ isSubmitting: false });
+        return;
+      }
+      setFormState({ isSubmitting: true });
+      const res = onSubmit?.(values, extraInfos);
+      if (res && res.then) {
+        return res
+          .then((isSuccess?: boolean) => {
+            if (isFormMounted.current) {
+              // Assuming isSuccess to be true by default
+              if (isSuccess !== false) {
+                // Make initial values same as final values in order to set isDirty as false after submit
+                updateInitialValues(
+                  props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+                  { skipUnregister, skipUnusedInitialValues },
+                  props?.reinitializeOnSubmit ? {} : extraInfos
+                );
               }
-            })
-            .catch(() => {
-              if (isFormMounted) {
-                setFormState({ isSubmitting: false });
-                // console.warn(
-                //   `Warning: An unhandled error was caught from onSubmit()`,
-                //   err
-                // );
-              }
-            });
-        } else {
-          setFormState({ isSubmitting: false });
-          updateInitialValues(
-            props?.reinitializeOnSubmit ? initialValues ?? {} : values,
-            { skipUnregister, skipUnusedInitialValues },
-            props?.reinitializeOnSubmit ? {} : extraInfos
-          );
-        }
-        return res;
-      },
+              setFormState({ isSubmitting: false });
+            }
+          })
+          .catch(() => {
+            if (isFormMounted) {
+              setFormState({ isSubmitting: false });
+              // console.warn(
+              //   `Warning: An unhandled error was caught from onSubmit()`,
+              //   err
+              // );
+            }
+          });
+      } else {
+        setFormState({ isSubmitting: false });
+        updateInitialValues(
+          props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+          { skipUnregister, skipUnusedInitialValues },
+          props?.reinitializeOnSubmit ? {} : extraInfos
+        );
+      }
+      return res;
+    },
     [
-      validateAllFields,
+      validateAllFieldsInternal,
       onSubmit,
       onError,
       validate,
       updateInitialValues,
       skipUnregister,
       formId,
+      getValuesAndExtraInfo,
     ]
+  );
+
+  const validateAllFields = useRecoilCallback(
+    ({ snapshot }) =>
+      () => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        const { values, extraInfos } = getValuesAndExtraInfo(get);
+        const errors = validateAllFieldsInternal(values, extraInfos);
+        return errors;
+      },
+    [getValuesAndExtraInfo]
   );
 
   return {
