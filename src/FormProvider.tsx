@@ -1200,6 +1200,8 @@ export function useForm(props: IFormProps) {
     handleReset,
     resetInitialValues,
     validateFields,
+    validateAllFields,
+    getValues: getValuesAndExtraInfo,
   };
 }
 
