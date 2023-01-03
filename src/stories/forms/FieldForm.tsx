@@ -1,15 +1,23 @@
 import * as React from 'react';
 import { Field } from '../../Field';
 import { useForm, withFormProvider } from '../../FormProvider';
+import Button from '../utils/Button';
+import MetaData from '../utils/MetaData';
 
-function ExtraInfoForm(props) {
+function FieldForm() {
+  const [formData, setFormData] = React.useState({});
+
   const { handleSubmit, resetInitialValues } = useForm({
-    onSubmit: props.onSubmit,
-    onError: props.onError,
+    onSubmit,
   });
+
+  function onSubmit(values: any, extra: any) {
+    setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
+  }
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3">
+      <form className="col-span-2" onSubmit={handleSubmit}>
         <div
           style={{
             display: 'flex',
@@ -19,38 +27,54 @@ function ExtraInfoForm(props) {
           }}
         >
           <Field name="username">
-            <input type="text" placeholder="Username" />
+            {({ value, onChange }) => (
+              <input
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300 rounded-md"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                type="text"
+                placeholder="Username"
+              />
+            )}
           </Field>
 
           <Field name="email">
-            <input type="text" placeholder="Email" />
+            <input
+              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300 rounded-md"
+              type="text"
+              placeholder="Email"
+            />
           </Field>
 
-          <Field
-            name="accept"
-            render={({ value, onChange }) => (
-              <label>
+          <Field name="accept">
+            {({ value, onChange }) => (
+              <label className="flex items-center gap-2">
                 <input
                   checked={!!value}
                   onChange={(e) => onChange(!value)}
                   type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
-                Do you accept?
+                <span>Do you accept?</span>
               </label>
             )}
-          ></Field>
+          </Field>
         </div>
 
         <br />
-        <div>
-          <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>
+        <div className="flex gap-4">
+          <Button primary type="submit">
+            Submit
+          </Button>
+          <Button type="button" onClick={() => resetInitialValues({})}>
             Reset
-          </button>
+          </Button>
         </div>
       </form>
-    </React.Fragment>
+
+      <MetaData formData={formData} />
+    </div>
   );
 }
 
-export default withFormProvider(ExtraInfoForm);
+export default withFormProvider(FieldForm);

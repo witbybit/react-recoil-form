@@ -4,6 +4,7 @@ import {
   useFieldArray,
   useFieldArrayColumnWatch,
 } from '../../FormProvider';
+import Button from './Button';
 
 interface FileFieldProps {
   name: string;
@@ -24,6 +25,13 @@ export interface InputFieldProps {
   disabled?: boolean;
   onChange?: (value: any) => void;
   defaultValue?: number | string;
+  max?: number;
+}
+interface SelectFieldProps extends Omit<InputFieldProps, 'type'> {
+  options: {
+    label: string;
+    value: string;
+  }[];
 }
 
 export function FileField(props: FileFieldProps) {
@@ -90,9 +98,49 @@ export function InputField(props: InputFieldProps) {
         value={field.fieldValue ?? ''}
         onBlur={field.onBlur}
       />
-      {field.error && (
-        <div className="text-red-500 text-sm mt-1">{field.error}</div>
-      )}
+      {field.error && <div className="text-red-500 text-sm">{field.error}</div>}
+    </div>
+  );
+}
+
+export function SelectField(props: SelectFieldProps) {
+  const field = useField<string | number>({
+    ancestors: props.ancestors,
+    name: props.name,
+    validate: props.validate,
+    defaultValue: props.defaultValue,
+    depFields: props.depFields,
+  });
+  return (
+    <div className="flex flex-col items-start mb-4">
+      <label
+        htmlFor={props.name}
+        className="block text-sm font-medium text-gray-700 capitalize mb-1"
+      >
+        {props.label ?? props.name}
+      </label>
+
+      <select
+        id={props.name}
+        name={props.name}
+        disabled={props.disabled}
+        onChange={(evt) => {
+          field.setFieldValue(evt.target.value);
+          props.onChange?.(evt.target.value);
+        }}
+        value={field.fieldValue ?? ''}
+        onBlur={field.onBlur}
+        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300 rounded-md"
+        // className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+      >
+        {props.options?.map((opt, idx) => (
+          <option key={idx} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+
+      {field.error && <div className="text-red-500 text-sm">{field.error}</div>}
     </div>
   );
 }
@@ -114,7 +162,9 @@ export function TableField(props: TableFieldProps) {
 
   return (
     <div>
-      <label htmlFor={props.name}>{props.name}</label>
+      <label htmlFor={props.name} className="capitalize">
+        {props.name}
+      </label>
       <table id={props.name}>
         <tbody>
           {tableField.fieldArrayProps.rowIds.map((r, idx) => {
@@ -122,7 +172,7 @@ export function TableField(props: TableFieldProps) {
               <tr key={r}>
                 <React.Fragment>
                   {props.fields.map((f) => (
-                    <td key={f.name}>
+                    <td key={f.name} className="px-2">
                       <InputField
                         ancestors={[{ name: props.name, rowId: r }]}
                         name={f.name}
@@ -131,24 +181,30 @@ export function TableField(props: TableFieldProps) {
                       />
                     </td>
                   ))}
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => tableField.remove(idx)}
-                    >
-                      Remove
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        tableField.insert(
-                          idx + 1,
-                          tableField.getFieldArrayValue()[idx]
-                        )
-                      }
-                    >
-                      Duplicate Row
-                    </button>
+                  <td className="px-2">
+                    <div className="flex gap-2">
+                      <Button
+                        small
+                        color="red"
+                        type="button"
+                        onClick={() => tableField.remove(idx)}
+                      >
+                        Remove
+                      </Button>
+                      <Button
+                        small
+                        type="button"
+                        color="emerald"
+                        onClick={() =>
+                          tableField.insert(
+                            idx + 1,
+                            tableField.getFieldArrayValue()[idx]
+                          )
+                        }
+                      >
+                        Duplicate Row
+                      </Button>
+                    </div>
                   </td>
                 </React.Fragment>
               </tr>
@@ -156,9 +212,9 @@ export function TableField(props: TableFieldProps) {
           })}
         </tbody>
       </table>
-      <button type="button" onClick={() => tableField.append()}>
+      <Button small type="button" onClick={() => tableField.append()}>
         Add Row
-      </button>
+      </Button>
       {tableField?.error && (
         <div style={{ color: 'red' }}>{tableField.error}</div>
       )}
@@ -182,9 +238,17 @@ export function WatchField(props: WatchFieldProps) {
     ? props.calculateFunc(res.values)
     : JSON.stringify(res.values ?? {});
   return (
-    <div>
-      <label htmlFor={props.name}>{props.name}</label>
-      <input id={props.name} type="text" disabled value={value} />
+    <div className="flex gap-2 items-center my-4">
+      <label htmlFor={props.name} className="capitalize">
+        {props.name}
+      </label>
+      <input
+        className="bg-gray-200 border-0 rounded-lg"
+        id={props.name}
+        type="text"
+        disabled
+        value={value}
+      />
     </div>
   );
 }

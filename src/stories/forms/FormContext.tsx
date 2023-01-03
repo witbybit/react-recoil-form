@@ -1,16 +1,24 @@
 import * as React from 'react';
 import { useForm, useFormContext, withFormProvider } from '../../FormProvider';
+import Button from '../utils/Button';
 import { InputField, InputFieldProps } from '../utils/Fields';
+import MetaData from '../utils/MetaData';
 
-function FormContext(props) {
+function FormContext() {
+  const [formData, setFormData] = React.useState({});
+
+  function onSubmit(values: any, extra: any) {
+    setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
+  }
+
   const { handleSubmit, resetInitialValues } = useForm({
-    onSubmit: props.onSubmit,
-    onError: props.onError,
-    initialValues: props.initialValues ?? { name: 'Abc' },
+    onSubmit,
+    initialValues: { name: 'Abc' },
   });
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <ContextField name="name" type="text" />
         <InputField
           label="Email (Resets when name changes)"
@@ -18,14 +26,16 @@ function FormContext(props) {
           type="text"
         />
         <br />
-        <div>
-          <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues()}>
+        <div className="flex gap-4">
+          <Button type="submit">Submit</Button>
+          <Button type="button" onClick={() => resetInitialValues()}>
             Reset
-          </button>
+          </Button>
         </div>
       </form>
-    </React.Fragment>
+
+      <MetaData formData={formData} />
+    </div>
   );
 }
 

@@ -1,27 +1,40 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
+import Button from '../utils/Button';
 import { FileField, InputField } from '../utils/Fields';
+import MetaData from '../utils/MetaData';
 
-function ExtraInfoForm(props) {
+function FileUploadForm() {
+  const [formData, setFormData] = React.useState({});
+
   const { handleSubmit, resetInitialValues } = useForm({
-    onSubmit: props.onSubmit,
-    onError: props.onError,
+    onSubmit,
   });
+
+  function onSubmit(values: any, extra: any) {
+    setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
+  }
+
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit}>
+    <div className="grid grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} className="col-span-2">
         <InputField name="name" type="text" />
         <FileField name="file" />
         <br />
-        <div>
-          <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues({})}>
+        <div className="flex gap-4">
+          <Button primary type="submit">
+            Submit
+          </Button>
+          <Button type="button" onClick={() => resetInitialValues({})}>
             Reset
-          </button>
+          </Button>
         </div>
       </form>
-    </React.Fragment>
+
+      <MetaData formData={formData} />
+    </div>
   );
 }
 
-export default withFormProvider(ExtraInfoForm);
+export default withFormProvider(FileUploadForm);

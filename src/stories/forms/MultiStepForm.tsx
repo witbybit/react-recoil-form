@@ -1,18 +1,27 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
+import Button from '../utils/Button';
 import { InputField } from '../utils/Fields';
+import MetaData from '../utils/MetaData';
 
-function MultiStepForm(props) {
+function MultiStepForm() {
+  const [formData, setFormData] = React.useState({});
+  const [step, setStep] = React.useState(0);
+
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
     skipUnregister: true,
-    onSubmit: props.onSubmit,
-    onError: props.onError,
+    onSubmit,
     initialValues: {},
   });
-  const [step, setStep] = React.useState(0);
+
+  function onSubmit(values: any, extra: any) {
+    setFormData({ values, extra, time: new Date().toString() });
+    return Promise.resolve();
+  }
+
   return (
-    <React.Fragment>
-      <form onSubmit={handleSubmit} autoComplete="off">
+    <div className="grid grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} autoComplete="off" className="col-span-2">
         <div>Step {step}</div>
         {step === 0 && (
           <InputField
@@ -36,8 +45,8 @@ function MultiStepForm(props) {
           />
         )}
         <br />
-        <div>
-          <button
+        <div className="flex gap-4">
+          <Button
             type="button"
             onClick={() => {
               if (step > 0) {
@@ -46,8 +55,8 @@ function MultiStepForm(props) {
             }}
           >
             Prev
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => {
               if (step < 2) {
@@ -61,14 +70,16 @@ function MultiStepForm(props) {
             }}
           >
             Next
-          </button>
-          <button type="submit">Submit</button>
-          <button type="button" onClick={() => resetInitialValues()}>
+          </Button>
+          <Button type="submit">Submit</Button>
+          <Button type="button" onClick={() => resetInitialValues()}>
             Reset
-          </button>
+          </Button>
         </div>
       </form>
-    </React.Fragment>
+
+      <MetaData formData={formData} />
+    </div>
   );
 }
 
