@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
-import { useFieldArray, useForm, withFormProvider } from '../../FormProvider';
+import {
+  useFieldArray,
+  useFieldArrayColumnWatch,
+  useForm,
+  withFormProvider,
+} from '../../FormProvider';
 import Button from '../utils/Button';
 import { Checkbox, InputField } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
@@ -21,12 +26,10 @@ function DragNDropRepro() {
         {
           id: 'customerId',
           label: 'Customer',
-          sort: 'asc',
         },
         {
           id: 'itemId',
           label: 'Item',
-          sort: '',
         },
       ],
     },
@@ -40,7 +43,7 @@ function DragNDropRepro() {
     getFieldArrayValue,
     setFieldArrayValue,
   } = useFieldArray({
-    fieldNames: ['id', 'label', 'sort', 'hide'],
+    fieldNames: ['id', 'label', 'sort', 'show'],
     name: 'groupBy',
   });
 
@@ -68,34 +71,32 @@ function DragNDropRepro() {
       <form className="col-span-2 overflow-auto" onSubmit={handleSubmit}>
         <InputField name="name" type="text" />
 
-        <div>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="droppable">
-              {(provider) => (
-                <table {...provider.droppableProps} ref={provider.innerRef}>
-                  <tbody>
-                    {fieldArrayProps.rowIds.map((r, idx) => {
-                      return (
-                        <GroupByField
-                          key={r}
-                          rowId={r}
-                          index={idx}
-                          onRemove={() => remove(idx)}
-                        />
-                      );
-                    })}
-                  </tbody>
-                  {provider.placeholder}
-                </table>
-              )}
-            </Droppable>
-          </DragDropContext>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="droppable">
+            {(provider) => (
+              <table {...provider.droppableProps} ref={provider.innerRef}>
+                <tbody>
+                  {fieldArrayProps.rowIds.map((r, idx) => {
+                    return (
+                      <GroupFields
+                        key={r}
+                        rowId={r}
+                        index={idx}
+                        onRemove={() => remove(idx)}
+                      />
+                    );
+                  })}
+                </tbody>
+                {provider.placeholder}
+              </table>
+            )}
+          </Droppable>
+        </DragDropContext>
 
-          <Button small type="button" onClick={() => append()}>
-            Add Row
-          </Button>
-          {error && <div style={{ color: 'red' }}>{error}</div>}
-        </div>
+        <Button small type="button" onClick={() => append()}>
+          Add Row
+        </Button>
+        {error && <div style={{ color: 'red' }}>{error}</div>}
 
         <br />
 
@@ -124,8 +125,13 @@ function DragNDropRepro() {
 
 export default withFormProvider(DragNDropRepro);
 
-function GroupByField(props: any) {
+function GroupFields(props: any) {
   const { index, rowId, onRemove } = props;
+
+  const watchValues = useFieldArrayColumnWatch({
+    fieldArrayName: 'groupBy',
+    fieldNames: ['show'],
+  }).values;
 
   return (
     <Draggable index={index} draggableId={rowId?.toString()}>
@@ -135,6 +141,7 @@ function GroupByField(props: any) {
             <span className="material-icons">drag_indicator</span>
           </td>
           <td className="px-2">
+            Row Id: {rowId}
             <InputField
               ancestors={[{ name: 'groupBy', rowId }]}
               name="id"
@@ -150,22 +157,24 @@ function GroupByField(props: any) {
               validate={(value) => (!value ? `Value missing` : '')}
             />
           </td>
-          <td className="px-2">
-            <InputField
-              ancestors={[{ name: 'groupBy', rowId }]}
-              name="sort"
-              type="text"
-              validate={(value) => (!value ? `Value missing` : '')}
-            />
-          </td>
           <td>
             <Checkbox
-              name="hide"
-              label="Hide"
+              name="show"
+              label="Show sort"
               ancestors={[{ name: 'groupBy', rowId }]}
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
           </td>
+          {watchValues?.[index]?.show ? (
+            <td className="px-2">
+              <InputField
+                ancestors={[{ name: 'groupBy', rowId }]}
+                name="sort"
+                type="text"
+                validate={(value) => (!value ? `Value missing` : '')}
+              />
+            </td>
+          ) : null}
           <td className="px-2">
             <div className="flex gap-2">
               <Button small color="red" type="button" onClick={onRemove}>
