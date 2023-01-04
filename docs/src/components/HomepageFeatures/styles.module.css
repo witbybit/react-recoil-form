@@ -9,3 +9,8 @@
   height: 200px;
   width: 200px;
 }
+
+.featureCard {
+  background-color: var(--ifm-card-background-color);
+  border-radius: 12px;
+}

@@ -8,6 +8,8 @@
   text-align: center;
   position: relative;
   overflow: hidden;
+  /* to hide the hero background */
+  background-color: unset;
 }
 
 @media screen and (max-width: 996px) {
