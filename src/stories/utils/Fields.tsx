@@ -103,6 +103,37 @@ export function InputField(props: InputFieldProps) {
   );
 }
 
+export function Checkbox(props: any) {
+  const field = useField<string | number>({
+    ancestors: props.ancestors,
+    name: props.name,
+    validate: props.validate,
+    defaultValue: props.defaultValue,
+    depFields: props.depFields,
+  });
+  return (
+    <div className="relative flex items-start">
+      <div className="flex h-5 items-center">
+        <input
+          id={props.name}
+          name={props.name}
+          type="checkbox"
+          checked={!!field.fieldValue}
+          onChange={(e) => {
+            field.setFieldValue(e.target.checked as any);
+          }}
+          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+        />
+      </div>
+      <div className="ml-3 text-sm">
+        <label htmlFor="comments" className="font-medium text-gray-700">
+          {props?.label}
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export function SelectField(props: SelectFieldProps) {
   const field = useField<string | number>({
     ancestors: props.ancestors,
