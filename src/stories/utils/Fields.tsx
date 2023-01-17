@@ -121,6 +121,7 @@ export function Checkbox(props: any) {
           checked={!!field.fieldValue}
           onChange={(e) => {
             field.setFieldValue(e.target.checked as any);
+            props.onChange?.(e.target.checked);
           }}
           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
         />

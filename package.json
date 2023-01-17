@@ -1,6 +1,6 @@
 {
   "name": "react-recoil-form",
-  "version": "0.3.2",
+  "version": "0.3.3-1",
   "license": "MIT",
   "author": "Wit By Bit",
   "main": "dist/index.js",
@@ -18,14 +18,14 @@
     "url": "https://github.com/witbybit/react-recoil-form"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "SET NODE_OPTIONS=--openssl-legacy-provider && tsup",
     "dev": "tsup --watch",
-    "build-ts": "tsc",
+    "build-ts": "SET NODE_OPTIONS=--openssl-legacy-provider && tsc",
     "prepare": "husky install",
     "format": "prettier . --write",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "storybook": "start-storybook -p 6006",
+    "storybook": "SET NODE_OPTIONS=--openssl-legacy-provider && start-storybook -p 6006",
     "build-storybook": "build-storybook"
   },
   "peerDependencies": {
@@ -63,9 +63,7 @@
     "typescript": "4.7.4",
     "vite": "^3.1.7"
   },
-  "dependencies": {
-    "core-js": "^3.18.1"
-  },
+  "dependencies": {},
   "lint-staged": {
     "*": "prettier --ignore-unknown --write"
   }

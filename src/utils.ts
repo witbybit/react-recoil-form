@@ -1,4 +1,4 @@
-import 'core-js/features/string/virtual/match-all';
+// import 'core-js/features/string/virtual/match-all';
 
 export function getPathInObj(
   obj: any,

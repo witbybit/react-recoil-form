@@ -387,6 +387,7 @@ export function setFieldArrayDataAndExtraInfo(
       Object.assign({}, val, {
         rowIds,
         initVer: initialValuesVersion ?? val.initVer,
+        error: null,
         fieldNames:
           initialValuesVersion && childFields?.length
             ? childFields
@@ -415,6 +416,7 @@ export function setFieldArrayDataAndExtraInfo(
     set(fieldAtomFamily(fieldArrayParams), (val) =>
       Object.assign({}, val, {
         rowIds,
+        error: null,
         initVer: initialValuesVersion ?? val.initVer,
       } as Partial<IFieldArrayAtomValue>)
     );
@@ -445,11 +447,15 @@ export function setFieldArrayDataAndExtraInfo(
               formId,
             }),
             (existingValue) => {
-              return Object.assign({}, existingValue, {
-                data,
-                extraInfo,
-                initVer: initialValuesVersion ?? existingValue.initVer,
-              } as Partial<IFieldAtomValue>);
+              const newValue = Object.assign(
+                {},
+                existingValue
+              ) as IFieldAtomValue;
+              newValue.data = data;
+              newValue.extraInfo = extraInfo;
+              newValue.error = null;
+              newValue.initVer = initialValuesVersion ?? existingValue.initVer;
+              return newValue;
             }
           );
         } else {
@@ -464,11 +470,16 @@ export function setFieldArrayDataAndExtraInfo(
                 formId,
               }),
               (existingValue) => {
-                return Object.assign({}, existingValue, {
-                  data,
-                  extraInfo,
-                  initVer: initialValuesVersion ?? existingValue.initVer,
-                } as Partial<IFieldAtomValue>);
+                const newValue = Object.assign(
+                  {},
+                  existingValue
+                ) as IFieldAtomValue;
+                newValue.data = data;
+                newValue.extraInfo = extraInfo;
+                newValue.error = null;
+                newValue.initVer =
+                  initialValuesVersion ?? existingValue.initVer;
+                return newValue;
               }
             );
           } else if (field.type === 'field-array') {

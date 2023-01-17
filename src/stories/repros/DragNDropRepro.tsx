@@ -3,7 +3,9 @@ import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import {
   useFieldArray,
   useFieldArrayColumnWatch,
+  useFieldWatch,
   useForm,
+  useFormContext,
   withFormProvider,
 } from '../../FormProvider';
 import Button from '../utils/Button';
@@ -20,7 +22,10 @@ function DragNDropRepro() {
 
   const { handleSubmit, resetInitialValues, validateFields } = useForm({
     onSubmit,
-    onError: (error) => setFormData((value) => ({ ...value, error })),
+    onError: (error, formErrors, values) => {
+      console.error({ values, formErrors, error });
+      // setFormData((value) => ({ ...value, error }));
+    },
     initialValues: {
       groupBy: [
         {
@@ -127,11 +132,7 @@ export default withFormProvider(DragNDropRepro);
 
 function GroupFields(props: any) {
   const { index, rowId, onRemove } = props;
-
-  const watchValues = useFieldArrayColumnWatch({
-    fieldArrayName: 'groupBy',
-    fieldNames: ['show'],
-  }).values;
+  const { removeFields } = useFormContext();
 
   return (
     <Draggable index={index} draggableId={rowId?.toString()}>
@@ -161,20 +162,22 @@ function GroupFields(props: any) {
             <Checkbox
               name="show"
               label="Show sort"
+              onChange={(isChecked: boolean) => {
+                // if (!isChecked) {
+                //   removeFields({
+                //     fieldNames: [
+                //       { ancestors: [{ name: 'groupBy', rowId }], name: 'sort' },
+                //     ],
+                //   });
+                // }
+              }}
               ancestors={[{ name: 'groupBy', rowId }]}
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
           </td>
-          {watchValues?.[index]?.show ? (
-            <td className="px-2">
-              <InputField
-                ancestors={[{ name: 'groupBy', rowId }]}
-                name="sort"
-                type="text"
-                validate={(value) => (!value ? `Value missing` : '')}
-              />
-            </td>
-          ) : null}
+          <td className="px-2">
+            <SortField index={index} rowId={rowId} />
+          </td>
           <td className="px-2">
             <div className="flex gap-2">
               <Button small color="red" type="button" onClick={onRemove}>
@@ -186,4 +189,24 @@ function GroupFields(props: any) {
       )}
     </Draggable>
   );
+}
+
+function SortField(props: any) {
+  const { index, rowId } = props;
+  const watchValues = useFieldWatch({
+    fieldNames: [{ ancestors: [{ name: 'groupBy', rowId }], name: 'show' }],
+  }).values;
+  if (watchValues?.show) {
+    return (
+      <InputField
+        ancestors={[{ name: 'groupBy', rowId }]}
+        name="sort"
+        type="text"
+        validate={(value) => {
+          return !value && watchValues?.show ? `Value missing` : '';
+        }}
+      />
+    );
+  }
+  return null;
 }

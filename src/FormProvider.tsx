@@ -33,6 +33,7 @@ import {
   IFieldArrayAtomValue,
   IFieldArrayColWatchParams,
   IFieldArrayProps,
+  IFieldAtomSelectorInput,
   IFieldAtomValue,
   IFieldError,
   IFieldProps,
@@ -72,7 +73,6 @@ function FormValuesObserver() {
   return null;
 }
 
-// TODO: Check if useField should be rendered again when same params are passed again
 export function useField<D = any, E = any>(props: IFieldProps<D>) {
   const {
     ancestors,
@@ -101,7 +101,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
     depFields?.map((f) =>
       typeof f === 'string' ? { name: f, formId } : { ...f, formId }
     ) ?? [];
-  // TODO: Memoize or change the params so that this hook doesn't render everytime useField is rendered
+
   const otherParams = useRecoilValue(
     multipleFieldsSelectorFamily(depObjFields)
   );
@@ -123,8 +123,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
           } as Partial<IFieldAtomValue>)
         );
         if (initialValues.values) {
-          //TODO: Add field array atoms depending on initial values
-          if (!ancestors?.length) {
+          if (ancestors?.length) {
             const initialValue = getPathInObj(initialValues.values, name);
             const extraInfo = getPathInObj(initialValues.extraInfos, name);
             set(fieldAtom, {
@@ -143,26 +142,67 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
   );
 
   const resetField = useRecoilTransaction_UNSTABLE(
-    ({ reset }) =>
+    ({ reset, set, get }) =>
       () => {
-        // DEVNOTE: Not resetting the field if it is part of field array
-        // since field array reset will reset those fields
-        if (
-          !skipUnregister &&
-          !initialValues.settings?.skipUnregister &&
-          !ancestors?.length
-        ) {
-          reset(
-            fieldAtomFamily({
-              name,
-              ancestors: ancestors ?? [],
-              type: 'field',
-              formId,
-            })
-          );
+        const ancestorsLocal = JSON.parse(JSON.stringify(ancestors ?? []));
+        // Not resetting the field if it is part of field array since field array reset will reset those fields.
+        // Initializing or resetting the field array's field here as well as in field array can create a conflict.
+        // However we do need to reset if just a single field is unmounted inside field array - otherwise its state will remain by default even if field is not visible.
+        // The tricky part is to figure out when field array is getting unmounted vs when a single field is unmounted. Hence we had to add some special checks.)
+        if (!skipUnregister && !initialValues.settings?.skipUnregister) {
+          const fieldAtomSelector = {
+            name,
+            ancestors: ancestorsLocal ?? [],
+            type: 'field',
+            formId,
+          } as IFieldAtomSelectorInput;
+          if (!ancestorsLocal?.length) {
+            reset(fieldAtomFamily(fieldAtomSelector));
+          } else {
+            const fieldArrayAncestors = [...ancestorsLocal];
+            const fieldArrayInfo = fieldArrayAncestors.pop();
+            const fieldArrayAtom = get(
+              fieldAtomFamily({
+                type: 'field-array',
+                ancestors: fieldArrayAncestors,
+                formId,
+                name: fieldArrayInfo?.name ?? '',
+              })
+            );
+            const fieldAtom = get(fieldAtomFamily(fieldAtomSelector));
+            if (
+              fieldArrayAtom.initVer === initialValues.version &&
+              fieldAtom.initVer === initialValues.version
+            ) {
+              reset(
+                fieldAtomFamily({
+                  name,
+                  ancestors: ancestorsLocal ?? [],
+                  type: 'field',
+                  formId,
+                })
+              );
+            } else {
+              set(fieldAtomFamily(fieldAtomSelector), (existingVal) => {
+                const newVal = Object.assign(
+                  {},
+                  existingVal
+                ) as IFieldAtomValue;
+                newVal.validate = undefined;
+                newVal.error = null;
+                return newVal;
+              });
+            }
+          }
         }
       },
-    [skipUnregister, name, initialValues, ancestors]
+    [
+      skipUnregister,
+      name,
+      initialValues.settings?.skipUnregister,
+      initialValues.version,
+      JSON.stringify(ancestors ?? []),
+    ]
   );
 
   useEffect(() => {
@@ -404,7 +444,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const removeFields = useRecoilCallback<any, any>(
+  const removeFields = useRecoilCallback(
     ({ reset }) =>
       (params: IRemoveFieldParams) => {
         for (const fieldName of params.fieldNames) {
