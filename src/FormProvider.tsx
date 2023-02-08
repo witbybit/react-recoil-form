@@ -309,6 +309,9 @@ export function useFormContext() {
         newValue: { value?: any; extraInfo?: any }
       ) => {
         const get = snapshotToGet(snapshot);
+        const initialValues = get(
+          formInitialValuesAtom(formId)
+        ) as InitialValues;
         const newAtomData = {} as Partial<IFieldAtomValue>;
         if (newValue.value !== undefined) {
           newAtomData.data = newValue.value;
@@ -329,7 +332,14 @@ export function useFormContext() {
               type: fieldKey.type,
               formId,
             }),
-            (atomValue) => Object.assign({}, atomValue, newAtomData)
+            (atomValue) => {
+              const updatedAtomData = Object.assign({}, atomValue, newAtomData);
+              // If field has not been mounted, this part will ensure that the setValue is not overridden by old initial values
+              if (initialValues.version > updatedAtomData.initVer) {
+                updatedAtomData.initVer = initialValues.version;
+              }
+              return updatedAtomData;
+            }
           );
         } else if (fieldKey.type === 'field-array') {
           setFieldArrayDataAndExtraInfo(
@@ -364,7 +374,21 @@ export function useFormContext() {
               formId,
             })
           ) as IFieldAtomValue;
-          return { value: fieldAtom.data, extraInfo: fieldAtom.extraInfo };
+          const initialValuesAtom = get(
+            formInitialValuesAtom(formId)
+          ) as InitialValues;
+          let value = fieldAtom.data;
+          let extraInfo = fieldAtom.extraInfo;
+          // Using initial value if field has not been mounted/initialized yet
+          if (
+            !key.ancestors?.length &&
+            value === undefined &&
+            fieldAtom.initVer < initialValuesAtom.version
+          ) {
+            value = getPathInObj(initialValuesAtom.values, key.name);
+            extraInfo = getPathInObj(initialValuesAtom.extraInfos, key.name);
+          }
+          return { value, extraInfo };
         } else if (key.type === 'field-array') {
           const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
             formId,
