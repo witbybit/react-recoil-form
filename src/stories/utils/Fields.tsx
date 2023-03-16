@@ -3,6 +3,7 @@ import {
   useField,
   useFieldArray,
   useFieldArrayColumnWatch,
+  useFieldWatch,
 } from '../../FormProvider';
 import Button from './Button';
 
@@ -100,6 +101,21 @@ export function InputField(props: InputFieldProps) {
       />
       {field.error && <div className="text-red-500 text-sm">{field.error}</div>}
     </div>
+  );
+}
+
+interface WatchFieldProps {
+  fieldId: string;
+}
+
+export function WatchField(props: WatchFieldProps) {
+  const field = useFieldWatch({
+    fieldNames: [props.fieldId],
+  });
+  return (
+    <div>{`Value for watching field id: ${props.fieldId} = ${JSON.stringify(
+      field.values ?? {}
+    )}`}</div>
   );
 }
 
@@ -222,14 +238,14 @@ export function TableField(props: TableFieldProps) {
   );
 }
 
-interface WatchFieldProps {
+interface WatchFieldArrayProps {
   name: string;
   fieldArrayName: string;
   colNames: string[];
   calculateFunc?: (values: any) => string;
 }
 
-export function WatchField(props: WatchFieldProps) {
+export function WatchFieldArray(props: WatchFieldArrayProps) {
   const res = useFieldArrayColumnWatch({
     fieldArrayName: props.fieldArrayName,
     fieldNames: props.colNames,

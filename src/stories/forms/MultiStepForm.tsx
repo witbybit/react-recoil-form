@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
 import Button from '../utils/Button';
-import { InputField } from '../utils/Fields';
+import { InputField, WatchField } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
 
 function MultiStepForm() {
@@ -38,11 +38,14 @@ function MultiStepForm() {
           />
         )}
         {step === 2 && (
-          <InputField
-            name="address"
-            type="text"
-            validate={(value) => (!!value ? null : 'Missing value')}
-          />
+          <>
+            <InputField
+              name="address"
+              type="text"
+              validate={(value) => (!!value ? null : 'Missing value')}
+            />
+            <WatchField fieldId="email" />
+          </>
         )}
         <br />
         <div className="flex gap-4">

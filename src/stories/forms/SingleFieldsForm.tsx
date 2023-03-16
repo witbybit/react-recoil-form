@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
 import Button from '../utils/Button';
-import { InputField } from '../utils/Fields';
+import { InputField, WatchField } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
 
 function SingleFieldsForm() {
@@ -9,8 +9,8 @@ function SingleFieldsForm() {
 
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit,
-    reinitializeOnSubmit: true,
-    initialValues: { name: 'Abc', email: '' },
+    reinitializeOnSubmit: false,
+    initialValues: { value: 200, email: '' },
   });
 
   function onSubmit(values: any, extra: any) {
@@ -38,6 +38,8 @@ function SingleFieldsForm() {
             return !value ? 'Email has to be present' : null;
           }}
         />
+
+        <WatchField fieldId="name" />
         <br />
 
         <div className="flex gap-4">
@@ -49,10 +51,10 @@ function SingleFieldsForm() {
           </Button>
         </div>
 
-        <div className="bg-gray-100 rounded-md my-4 p-2 px-3 text-sm text-gray-600">
+        {/* <div className="bg-gray-100 rounded-md my-4 p-2 px-3 text-sm text-gray-600">
           Note that on submit, the values will be reinitialized back to original
           initial values as specified in useForm() props.
-        </div>
+        </div> */}
       </form>
 
       <MetaData formData={formData} />

@@ -549,6 +549,9 @@ export const multipleFieldsSelectorFamily = selectorFamily<
       }
       const values: any = {};
       const extraInfos: any = {};
+      const initialAtomVal = get(
+        formInitialValuesAtom(fieldNames?.[0]?.formId)
+      ) as InitialValues;
       for (const fieldInfo of fieldNames) {
         const fieldAtomVal = get(
           fieldAtomFamily({
@@ -558,8 +561,20 @@ export const multipleFieldsSelectorFamily = selectorFamily<
             formId: fieldInfo.formId,
           })
         ) as IFieldAtomValue;
-        setPathInObj(values, fieldInfo.name, fieldAtomVal?.data);
-        setPathInObj(extraInfos, fieldInfo.name, fieldAtomVal?.extraInfo);
+        setPathInObj(
+          values,
+          fieldInfo.name,
+          fieldAtomVal?.data === undefined
+            ? getPathInObj(initialAtomVal?.values ?? {}, fieldInfo.name)
+            : fieldAtomVal?.data
+        );
+        setPathInObj(
+          extraInfos,
+          fieldInfo.name,
+          fieldAtomVal?.extraInfo === undefined
+            ? getPathInObj(initialAtomVal?.extraInfos ?? {}, fieldInfo.name)
+            : fieldAtomVal?.extraInfo
+        );
       }
       return { values, extraInfos };
     };

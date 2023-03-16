@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useForm, withFormProvider } from '../../FormProvider';
 import Button from '../utils/Button';
-import { InputField, TableField, WatchField } from '../utils/Fields';
+import { InputField, TableField, WatchFieldArray } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
 
 function SimpleFieldArray() {
@@ -50,7 +50,7 @@ function SimpleFieldArray() {
           ]}
         />
 
-        <WatchField
+        <WatchFieldArray
           name="totalAmount"
           fieldArrayName="items"
           colNames={['amount']}
