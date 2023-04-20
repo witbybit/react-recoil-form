@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useForm, withFormProvider } from '../../FormProvider';
+import { useForm, useFormContext, withFormProvider } from '../../FormProvider';
 import Button from '../utils/Button';
 import { InputField, TableField, WatchFieldArray } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
@@ -66,9 +66,7 @@ function SimpleFieldArray() {
           <Button type="submit" primary>
             Submit
           </Button>
-          <Button type="button" onClick={() => resetInitialValues()}>
-            Reset
-          </Button>
+          <ResetButton />
           <Button
             type="button"
             onClick={() =>
@@ -82,6 +80,18 @@ function SimpleFieldArray() {
 
       <MetaData formData={formData} />
     </div>
+  );
+}
+
+function ResetButton() {
+  const { resetInitialValues } = useFormContext();
+  return (
+    <Button
+      type="button"
+      onClick={() => resetInitialValues({ name: 'Reset using context' })}
+    >
+      Reset
+    </Button>
   );
 }
 

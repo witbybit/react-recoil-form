@@ -456,7 +456,59 @@ export function useFormContext() {
     [formId]
   );
 
-  return { getValue, setValue, getValues, checkIsDirty, removeFields };
+  function resetDataAtoms(reset: (val: RecoilState<any>) => void) {
+    if (formId) {
+      if (combinedFieldAtomValues?.[formId]?.fields) {
+        for (const field of Object.values(
+          combinedFieldAtomValues[formId]?.fields ?? {}
+        )) {
+          reset(fieldAtomFamily(field.param));
+        }
+        combinedFieldAtomValues[formId].fields = {};
+      }
+
+      if (combinedFieldAtomValues?.[formId]?.fieldArrays) {
+        for (const fieldArray of Object.values(
+          combinedFieldAtomValues[formId]?.fieldArrays ?? {}
+        )) {
+          reset(fieldAtomFamily(fieldArray.param));
+        }
+        combinedFieldAtomValues[formId].fieldArrays = {};
+      }
+    }
+  }
+
+  const resetInitialValues = useRecoilTransaction_UNSTABLE(
+    ({ set, get, reset }) =>
+      (values?: any, extraInfos?: any) => {
+        resetDataAtoms(reset);
+        const existingVal = get(formInitialValuesAtom(formId));
+        const newValues = values ?? existingVal.values;
+        const newExtraInfos = extraInfos ?? existingVal.extraInfos;
+        set(
+          formInitialValuesAtom(formId),
+          Object.assign({}, existingVal, {
+            values: newValues,
+            extraInfos: newExtraInfos,
+            version: (existingVal.version ?? 0) + 1,
+          })
+        );
+        set(formValuesAtom(formId), {
+          values: newValues,
+          extraInfos: newExtraInfos,
+        });
+      },
+    [formId]
+  );
+
+  return {
+    getValue,
+    setValue,
+    getValues,
+    checkIsDirty,
+    removeFields,
+    resetInitialValues,
+  };
 }
 
 export function useFieldArray(props: IFieldArrayProps) {
@@ -948,8 +1000,8 @@ export function useForm(props: IFormProps) {
         extraInfos?: any
       ) => {
         resetDataAtoms(reset);
-        initValuesVer.current = initValuesVer.current + 1;
         const existingVal = get(formInitialValuesAtom(formId));
+        initValuesVer.current = (existingVal.version ?? 0) + 1;
         const newValues = values ?? existingVal.values;
         const newExtraInfos = extraInfos ?? existingVal.extraInfos;
         set(
@@ -957,7 +1009,7 @@ export function useForm(props: IFormProps) {
           Object.assign({}, existingVal, {
             values: newValues,
             extraInfos: newExtraInfos,
-            version: initValuesVer.current,
+            version: (existingVal?.version ?? 0) + 1,
             settings: {
               skipUnregister:
                 settings?.skipUnregister ??
