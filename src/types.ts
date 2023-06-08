@@ -32,7 +32,11 @@ export interface FinalValues {
 export interface IRemoveFieldParams {
   fieldNames: (
     | string
-    | { ancestors?: { name: string; rowId: number }[]; name: string }
+    | {
+        ancestors?: { name: string; rowId: number }[];
+        name: string;
+        type?: 'field';
+      }
   )[];
 }
 
