@@ -300,8 +300,10 @@ export function useFormValues() {
   return formValues;
 }
 
-export function useFormContext() {
-  const formId = useContext(FormIdContext);
+export function useFormContext(params?: { formId?: string }) {
+  const { formId: overrideFormId } = params ?? {};
+  const defaultFormId = useContext(FormIdContext);
+  const formId = overrideFormId ?? defaultFormId;
   const setValue = useRecoilCallback(
     ({ set, snapshot, reset }) =>
       (
@@ -405,7 +407,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const getValues = useRecoilCallback<any, any>(
+  const getValues = useRecoilCallback(
     ({ snapshot }) =>
       () => {
         const get = snapshotToGet(snapshot);
@@ -414,7 +416,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const checkIsDirty = useRecoilCallback<any, any>(
+  const checkIsDirty = useRecoilCallback(
     ({ snapshot }) =>
       (options?: IIsDirtyProps) => {
         const get = snapshotToGet(snapshot);
@@ -428,7 +430,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const removeFields = useRecoilCallback<any, any>(
+  const removeFields = useRecoilCallback(
     ({ reset }) =>
       (params: IRemoveFieldParams) => {
         for (const fieldName of params.fieldNames) {
