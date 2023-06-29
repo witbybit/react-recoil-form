@@ -560,8 +560,9 @@ export function useFieldArray(props: IFieldArrayProps) {
   const validateData = useRecoilCallback(
     ({ snapshot, set }) =>
       () => {
-        const get = (atom: RecoilValue<any>) =>
-          snapshot.getLoadable(atom).contents;
+        const get = (atom: RecoilValue<any>) => {
+          return snapshot.getLoadable(atom).contents;
+        };
         const { errors } = getFieldArrayDataAndExtraInfo(
           formId,
           { name, ancestors: ancestors ?? [] },
@@ -571,6 +572,30 @@ export function useFieldArray(props: IFieldArrayProps) {
             isValidation: true,
           }
         );
+        if (errors) {
+          for (const error of errors) {
+            set(
+              fieldAtomFamily({
+                ancestors: error.ancestors,
+                formId,
+                name: error.name,
+                type: error.type,
+              }),
+              (value) => {
+                const updatedValue = Object.assign({}, value, {
+                  error: error.error,
+                  touched: true,
+                });
+                console.log(
+                  `field updated due to validation`,
+                  error,
+                  updatedValue
+                );
+                return updatedValue;
+              }
+            );
+          }
+        }
         return { errors, isValid: !errors?.length };
       },
     [name, fieldArrayProps, formId]

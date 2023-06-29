@@ -228,9 +228,21 @@ export function TableField(props: TableFieldProps) {
           })}
         </tbody>
       </table>
-      <Button small type="button" onClick={() => tableField.append()}>
-        Add Row
-      </Button>
+      <div className="flex gap-2">
+        <Button small type="button" onClick={() => tableField.append()}>
+          Add Row
+        </Button>
+        <Button
+          small
+          type="button"
+          onClick={() => {
+            const result = tableField.validateData();
+            console.log(`Table errors for ${props.name}`, result.errors);
+          }}
+        >
+          Validate Table
+        </Button>
+      </div>
       {tableField?.error && (
         <div style={{ color: 'red' }}>{tableField.error}</div>
       )}
