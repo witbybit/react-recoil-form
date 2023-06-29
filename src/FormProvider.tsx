@@ -586,11 +586,6 @@ export function useFieldArray(props: IFieldArrayProps) {
                   error: error.error,
                   touched: true,
                 });
-                console.log(
-                  `field updated due to validation`,
-                  error,
-                  updatedValue
-                );
                 return updatedValue;
               }
             );

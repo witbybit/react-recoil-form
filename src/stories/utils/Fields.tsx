@@ -236,8 +236,9 @@ export function TableField(props: TableFieldProps) {
           small
           type="button"
           onClick={() => {
-            const result = tableField.validateData();
-            console.log(`Table errors for ${props.name}`, result.errors);
+            tableField.validateData();
+            // const result = tableField.validateData();
+            // console.log(`Table errors for ${props.name}`, result.errors);
           }}
         >
           Validate Table
