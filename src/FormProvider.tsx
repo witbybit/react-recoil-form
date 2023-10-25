@@ -300,6 +300,12 @@ export function useFormValues() {
   return formValues;
 }
 
+export function useInitialValues() {
+  const formId = useContext(FormIdContext);
+  const { values } = useRecoilValue(formInitialValuesAtom(formId));
+  return values;
+}
+
 export function useFormContext(params?: { formId?: string }) {
   const { formId: overrideFormId } = params ?? {};
   const defaultFormId = useContext(FormIdContext);
