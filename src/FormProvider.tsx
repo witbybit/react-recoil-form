@@ -310,6 +310,57 @@ export function useFormContext(params?: { formId?: string }) {
   const { formId: overrideFormId } = params ?? {};
   const defaultFormId = useContext(FormIdContext);
   const formId = overrideFormId ?? defaultFormId;
+
+  /**
+   * This is helpful for setting multiple fields
+   * Please note this does not include field array and it only works for fields without ancestors
+   */
+  const setFieldValues = useRecoilTransaction_UNSTABLE(
+    ({ set, get }) =>
+      (
+        fieldValues: {
+          name: string;
+          value: any;
+          extraInfo?: any;
+        }[]
+      ) => {
+        for (const field of fieldValues) {
+          const initialValues = get(
+            formInitialValuesAtom(formId)
+          ) as InitialValues;
+          const newAtomData = {} as Partial<IFieldAtomValue>;
+          if (field.value !== undefined) {
+            newAtomData.data = field.value;
+          }
+          if (field.extraInfo !== undefined) {
+            newAtomData.extraInfo = field.extraInfo;
+          }
+          const fieldKey: IFormContextFieldInput = {
+            type: 'field',
+            name: field.name,
+            ancestors: [],
+          };
+          set(
+            fieldAtomFamily({
+              ancestors: fieldKey.ancestors ?? [],
+              name: fieldKey.name,
+              type: fieldKey.type,
+              formId,
+            }),
+            (atomValue) => {
+              const updatedAtomData = Object.assign({}, atomValue, newAtomData);
+              // If field has not been mounted, this part will ensure that the setValue is not overridden by old initial values
+              if (initialValues.version > updatedAtomData.initVer) {
+                updatedAtomData.initVer = initialValues.version;
+              }
+              return updatedAtomData;
+            }
+          );
+        }
+      },
+    []
+  );
+
   const setValue = useRecoilCallback(
     ({ set, snapshot, reset }) =>
       (
@@ -512,6 +563,7 @@ export function useFormContext(params?: { formId?: string }) {
   return {
     getValue,
     setValue,
+    setFieldValues,
     getValues,
     checkIsDirty,
     removeFields,
