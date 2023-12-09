@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
-import { useField } from './FormProvider';
-import { IAncestorInput } from './types';
+import { IAncestorInput } from '../utils/types';
+import { useField } from '../hooks/useField';
 
 interface IRenderProps {
   value: any;

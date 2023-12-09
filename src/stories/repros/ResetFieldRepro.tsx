@@ -4,7 +4,7 @@ import {
   useForm,
   useFormContext,
   withFormProvider,
-} from '../../FormProvider';
+} from '../../';
 import Button from '../utils/Button';
 import { InputField, SelectField } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
