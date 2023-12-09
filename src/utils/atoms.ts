@@ -1,5 +1,5 @@
 import { atomFamily, RecoilState, RecoilValue, selectorFamily } from 'recoil';
-import { gan, getNewRowId } from './atomUtils';
+import { gan, getNewRowId } from './atoms.utils';
 import {
   FinalValues,
   IAncestorInput,

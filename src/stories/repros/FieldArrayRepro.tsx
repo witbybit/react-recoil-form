@@ -1,6 +1,6 @@
 import { shuffle } from 'lodash';
 import * as React from 'react';
-import { useFieldArray, useForm, withFormProvider } from '../../FormProvider';
+import { useFieldArray, useForm, withFormProvider } from '../../';
 import Button from '../utils/Button';
 import { InputField } from '../utils/Fields';
 import MetaData from '../utils/MetaData';

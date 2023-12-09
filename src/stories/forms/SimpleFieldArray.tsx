@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useForm, useFormContext, withFormProvider } from '../../FormProvider';
+import { useForm, useFormContext, withFormProvider } from '../../';
 import Button from '../utils/Button';
 import { InputField, TableField, WatchFieldArray } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
