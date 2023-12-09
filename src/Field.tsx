@@ -18,6 +18,10 @@ interface IField {
   handleChange?: (value?: any) => void;
   ancestors?: IAncestorInput[];
   validate?: (value?: any, otherParams?: any) => string | null | undefined;
+  depFields?: (
+    | string
+    | { name: string; ancestors?: { name: string; rowId: number }[] }
+  )[];
 }
 
 export const Field = (props: IField) => {
@@ -29,11 +33,13 @@ export const Field = (props: IField) => {
     defaultValue,
     ancestors,
     validate,
+    depFields,
   } = props;
   const { fieldValue, setFieldValue, error } = useField({
     name,
     ancestors,
     defaultValue,
+    depFields,
     validate: validate
       ? validate
       : (value) => {

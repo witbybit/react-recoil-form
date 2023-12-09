@@ -1,5 +1,3 @@
-import 'core-js/features/string/virtual/match-all';
-
 export function getPathInObj(
   obj: any,
   path: string,

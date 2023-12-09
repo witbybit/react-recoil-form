@@ -32,7 +32,11 @@ export interface FinalValues {
 export interface IRemoveFieldParams {
   fieldNames: (
     | string
-    | { ancestors?: { name: string; rowId: number }[]; name: string }
+    | {
+        ancestors?: { name: string; rowId: number }[];
+        name: string;
+        type?: 'field';
+      }
   )[];
 }
 
@@ -111,7 +115,7 @@ export interface IFieldArrayProps {
   fieldNames: IChildFieldInfo[];
   // TODO: Implement validate here
   // Note that this should be memoized or kept outside a function component so that it doesn't change on every render.
-  validate?: (values: any[], otherParams?: any) => string | undefined | null;
+  validate?: (values: any[], otherParams?: any[]) => string | undefined | null;
   depFields?: string[];
   skipUnregister?: boolean;
   ancestors?: IAncestorInput[];

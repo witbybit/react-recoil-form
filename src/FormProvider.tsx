@@ -300,8 +300,67 @@ export function useFormValues() {
   return formValues;
 }
 
-export function useFormContext() {
+export function useInitialValues() {
   const formId = useContext(FormIdContext);
+  const { values } = useRecoilValue(formInitialValuesAtom(formId));
+  return values;
+}
+
+export function useFormContext(params?: { formId?: string }) {
+  const { formId: overrideFormId } = params ?? {};
+  const defaultFormId = useContext(FormIdContext);
+  const formId = overrideFormId ?? defaultFormId;
+
+  /**
+   * This is helpful for setting multiple fields
+   * Please note this does not include field array and it only works for fields without ancestors
+   */
+  const setFieldValues = useRecoilTransaction_UNSTABLE(
+    ({ set, get }) =>
+      (
+        fieldValues: {
+          name: string;
+          value: any;
+          extraInfo?: any;
+        }[]
+      ) => {
+        for (const field of fieldValues) {
+          const initialValues = get(
+            formInitialValuesAtom(formId)
+          ) as InitialValues;
+          const newAtomData = {} as Partial<IFieldAtomValue>;
+          if (field.value !== undefined) {
+            newAtomData.data = field.value;
+          }
+          if (field.extraInfo !== undefined) {
+            newAtomData.extraInfo = field.extraInfo;
+          }
+          const fieldKey: IFormContextFieldInput = {
+            type: 'field',
+            name: field.name,
+            ancestors: [],
+          };
+          set(
+            fieldAtomFamily({
+              ancestors: fieldKey.ancestors ?? [],
+              name: fieldKey.name,
+              type: fieldKey.type,
+              formId,
+            }),
+            (atomValue) => {
+              const updatedAtomData = Object.assign({}, atomValue, newAtomData);
+              // If field has not been mounted, this part will ensure that the setValue is not overridden by old initial values
+              if (initialValues.version > updatedAtomData.initVer) {
+                updatedAtomData.initVer = initialValues.version;
+              }
+              return updatedAtomData;
+            }
+          );
+        }
+      },
+    []
+  );
+
   const setValue = useRecoilCallback(
     ({ set, snapshot, reset }) =>
       (
@@ -309,6 +368,9 @@ export function useFormContext() {
         newValue: { value?: any; extraInfo?: any }
       ) => {
         const get = snapshotToGet(snapshot);
+        const initialValues = get(
+          formInitialValuesAtom(formId)
+        ) as InitialValues;
         const newAtomData = {} as Partial<IFieldAtomValue>;
         if (newValue.value !== undefined) {
           newAtomData.data = newValue.value;
@@ -329,7 +391,14 @@ export function useFormContext() {
               type: fieldKey.type,
               formId,
             }),
-            (atomValue) => Object.assign({}, atomValue, newAtomData)
+            (atomValue) => {
+              const updatedAtomData = Object.assign({}, atomValue, newAtomData);
+              // If field has not been mounted, this part will ensure that the setValue is not overridden by old initial values
+              if (initialValues.version > updatedAtomData.initVer) {
+                updatedAtomData.initVer = initialValues.version;
+              }
+              return updatedAtomData;
+            }
           );
         } else if (fieldKey.type === 'field-array') {
           setFieldArrayDataAndExtraInfo(
@@ -364,7 +433,21 @@ export function useFormContext() {
               formId,
             })
           ) as IFieldAtomValue;
-          return { value: fieldAtom.data, extraInfo: fieldAtom.extraInfo };
+          const initialValuesAtom = get(
+            formInitialValuesAtom(formId)
+          ) as InitialValues;
+          let value = fieldAtom.data;
+          let extraInfo = fieldAtom.extraInfo;
+          // Using initial value if field has not been mounted/initialized yet
+          if (
+            !key.ancestors?.length &&
+            value === undefined &&
+            fieldAtom.initVer < initialValuesAtom.version
+          ) {
+            value = getPathInObj(initialValuesAtom.values, key.name);
+            extraInfo = getPathInObj(initialValuesAtom.extraInfos, key.name);
+          }
+          return { value, extraInfo };
         } else if (key.type === 'field-array') {
           const { data, extraInfo } = getFieldArrayDataAndExtraInfo(
             formId,
@@ -381,7 +464,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const getValues = useRecoilCallback<any, any>(
+  const getValues = useRecoilCallback(
     ({ snapshot }) =>
       () => {
         const get = snapshotToGet(snapshot);
@@ -390,7 +473,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const checkIsDirty = useRecoilCallback<any, any>(
+  const checkIsDirty = useRecoilCallback(
     ({ snapshot }) =>
       (options?: IIsDirtyProps) => {
         const get = snapshotToGet(snapshot);
@@ -404,7 +487,7 @@ export function useFormContext() {
     [formId]
   );
 
-  const removeFields = useRecoilCallback<any, any>(
+  const removeFields = useRecoilCallback(
     ({ reset }) =>
       (params: IRemoveFieldParams) => {
         for (const fieldName of params.fieldNames) {
@@ -432,7 +515,60 @@ export function useFormContext() {
     [formId]
   );
 
-  return { getValue, setValue, getValues, checkIsDirty, removeFields };
+  function resetDataAtoms(reset: (val: RecoilState<any>) => void) {
+    if (formId) {
+      if (combinedFieldAtomValues?.[formId]?.fields) {
+        for (const field of Object.values(
+          combinedFieldAtomValues[formId]?.fields ?? {}
+        )) {
+          reset(fieldAtomFamily(field.param));
+        }
+        combinedFieldAtomValues[formId].fields = {};
+      }
+
+      if (combinedFieldAtomValues?.[formId]?.fieldArrays) {
+        for (const fieldArray of Object.values(
+          combinedFieldAtomValues[formId]?.fieldArrays ?? {}
+        )) {
+          reset(fieldAtomFamily(fieldArray.param));
+        }
+        combinedFieldAtomValues[formId].fieldArrays = {};
+      }
+    }
+  }
+
+  const resetInitialValues = useRecoilTransaction_UNSTABLE(
+    ({ set, get, reset }) =>
+      (values?: any, extraInfos?: any) => {
+        resetDataAtoms(reset);
+        const existingVal = get(formInitialValuesAtom(formId));
+        const newValues = values ?? existingVal.values;
+        const newExtraInfos = extraInfos ?? existingVal.extraInfos;
+        set(
+          formInitialValuesAtom(formId),
+          Object.assign({}, existingVal, {
+            values: newValues,
+            extraInfos: newExtraInfos,
+            version: (existingVal.version ?? 0) + 1,
+          })
+        );
+        set(formValuesAtom(formId), {
+          values: newValues,
+          extraInfos: newExtraInfos,
+        });
+      },
+    [formId]
+  );
+
+  return {
+    getValue,
+    setValue,
+    setFieldValues,
+    getValues,
+    checkIsDirty,
+    removeFields,
+    resetInitialValues,
+  };
 }
 
 export function useFieldArray(props: IFieldArrayProps) {
@@ -482,8 +618,9 @@ export function useFieldArray(props: IFieldArrayProps) {
   const validateData = useRecoilCallback(
     ({ snapshot, set }) =>
       () => {
-        const get = (atom: RecoilValue<any>) =>
-          snapshot.getLoadable(atom).contents;
+        const get = (atom: RecoilValue<any>) => {
+          return snapshot.getLoadable(atom).contents;
+        };
         const { errors } = getFieldArrayDataAndExtraInfo(
           formId,
           { name, ancestors: ancestors ?? [] },
@@ -493,6 +630,25 @@ export function useFieldArray(props: IFieldArrayProps) {
             isValidation: true,
           }
         );
+        if (errors) {
+          for (const error of errors) {
+            set(
+              fieldAtomFamily({
+                ancestors: error.ancestors,
+                formId,
+                name: error.name,
+                type: error.type,
+              }),
+              (value) => {
+                const updatedValue = Object.assign({}, value, {
+                  error: error.error,
+                  touched: true,
+                });
+                return updatedValue;
+              }
+            );
+          }
+        }
         return { errors, isValid: !errors?.length };
       },
     [name, fieldArrayProps, formId]
@@ -924,8 +1080,8 @@ export function useForm(props: IFormProps) {
         extraInfos?: any
       ) => {
         resetDataAtoms(reset);
-        initValuesVer.current = initValuesVer.current + 1;
         const existingVal = get(formInitialValuesAtom(formId));
+        initValuesVer.current = (existingVal.version ?? 0) + 1;
         const newValues = values ?? existingVal.values;
         const newExtraInfos = extraInfos ?? existingVal.extraInfos;
         set(
@@ -933,7 +1089,7 @@ export function useForm(props: IFormProps) {
           Object.assign({}, existingVal, {
             values: newValues,
             extraInfos: newExtraInfos,
-            version: initValuesVer.current,
+            version: (existingVal?.version ?? 0) + 1,
             settings: {
               skipUnregister:
                 settings?.skipUnregister ??

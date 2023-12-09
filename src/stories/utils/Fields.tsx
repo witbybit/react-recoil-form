@@ -3,6 +3,7 @@ import {
   useField,
   useFieldArray,
   useFieldArrayColumnWatch,
+  useFieldWatch,
 } from '../../FormProvider';
 import Button from './Button';
 
@@ -134,6 +135,21 @@ export function Checkbox(props: any) {
   );
 }
 
+interface WatchFieldProps {
+  fieldId: string;
+}
+
+export function WatchField(props: WatchFieldProps) {
+  const field = useFieldWatch({
+    fieldNames: [props.fieldId],
+  });
+  return (
+    <div>{`Value for watching field id: ${props.fieldId} = ${JSON.stringify(
+      field.values ?? {}
+    )}`}</div>
+  );
+}
+
 export function SelectField(props: SelectFieldProps) {
   const field = useField<string | number>({
     ancestors: props.ancestors,
@@ -243,9 +259,22 @@ export function TableField(props: TableFieldProps) {
           })}
         </tbody>
       </table>
-      <Button small type="button" onClick={() => tableField.append()}>
-        Add Row
-      </Button>
+      <div className="flex gap-2">
+        <Button small type="button" onClick={() => tableField.append()}>
+          Add Row
+        </Button>
+        <Button
+          small
+          type="button"
+          onClick={() => {
+            tableField.validateData();
+            // const result = tableField.validateData();
+            // console.log(`Table errors for ${props.name}`, result.errors);
+          }}
+        >
+          Validate Table
+        </Button>
+      </div>
       {tableField?.error && (
         <div style={{ color: 'red' }}>{tableField.error}</div>
       )}
@@ -253,14 +282,14 @@ export function TableField(props: TableFieldProps) {
   );
 }
 
-interface WatchFieldProps {
+interface WatchFieldArrayProps {
   name: string;
   fieldArrayName: string;
   colNames: string[];
   calculateFunc?: (values: any) => string;
 }
 
-export function WatchField(props: WatchFieldProps) {
+export function WatchFieldArray(props: WatchFieldArrayProps) {
   const res = useFieldArrayColumnWatch({
     fieldArrayName: props.fieldArrayName,
     fieldNames: props.colNames,
