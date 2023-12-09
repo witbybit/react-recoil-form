@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Field } from '../../Field';
-import { useForm, withFormProvider } from '../../FormProvider';
+import { Field, useForm, withFormProvider } from '../../';
 import Button from '../utils/Button';
 import MetaData from '../utils/MetaData';
 

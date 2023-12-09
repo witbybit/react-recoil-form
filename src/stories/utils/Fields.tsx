@@ -4,7 +4,7 @@ import {
   useFieldArray,
   useFieldArrayColumnWatch,
   useFieldWatch,
-} from '../../FormProvider';
+} from '../../';
 import Button from './Button';
 
 interface FileFieldProps {

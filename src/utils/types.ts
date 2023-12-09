@@ -158,3 +158,32 @@ export interface IFieldError {
 export interface IIsDirtyProps {
   preCompareUpdateFormValues?: (formValues: any) => any;
 }
+
+export interface IFormProps {
+  onSubmit: (values: any, extraInfos?: any) => any;
+  onError?: (
+    errors?: IFieldError[] | null,
+    formErrors?: any[] | null,
+    values?: any
+  ) => any;
+  initialValues?: any;
+  /**
+   * Useful in cases where you want to show the errors at the form level rather than field level
+   * To show field level errors, please use validate() function in useField instead
+   */
+  validate?: (data: any) => string[] | null | undefined;
+  /**
+   * Should data be preserved if a field unmounts?
+   * By default, this is false
+   */
+  skipUnregister?: boolean;
+  /**
+   * Reinitialize the form after submit back to the specified initial or empty values.
+   * E.g. After changing password, you want to clear all the input fields
+   */
+  reinitializeOnSubmit?: boolean;
+  /**
+   * If true, initial values not mapped to  form fields, will not come in the output
+   */
+  skipUnusedInitialValues?: boolean;
+}

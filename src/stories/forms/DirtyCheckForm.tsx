@@ -1,4 +1,4 @@
-import { withFormProvider, useForm, useIsDirty } from '../..';
+import { withFormProvider, useForm, useIsDirty } from '../../';
 import React, { useEffect, useState } from 'react';
 import { InputField } from '../utils/Fields';
 import MetaData from '../utils/MetaData';
