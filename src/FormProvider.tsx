@@ -300,6 +300,12 @@ export function useFormValues() {
   return formValues;
 }
 
+export function useFormValuesAndExtraInfos() {
+  const formId = useContext(FormIdContext);
+  const { values, extraInfos } = useRecoilValue(formValuesAtom(formId));
+  return {values, extraInfos};
+}
+
 export function useInitialValues() {
   const formId = useContext(FormIdContext);
   const { values } = useRecoilValue(formInitialValuesAtom(formId));
