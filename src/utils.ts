@@ -13,7 +13,7 @@ export function getPathInObj(
   }
   const travel = (regexp: RegExp) =>
     String.prototype.split
-      .call(path, regexp)
+      .call(path ?? '', regexp)
       .filter(Boolean)
       .reduce(
         (res, key) => (res !== null && res !== undefined ? res[key] : res),
