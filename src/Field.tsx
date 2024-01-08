@@ -35,20 +35,21 @@ export const Field = (props: IField) => {
     validate,
     depFields,
   } = props;
-  const { fieldValue, setFieldValue, error } = useField({
-    name,
-    ancestors,
-    defaultValue,
-    depFields,
-    validate: validate
-      ? validate
-      : (value) => {
-          if (required && !value) {
-            return 'Required';
-          }
-          return null;
-        },
-  });
+  const { fieldValue, setFieldValue, error, onBlur, touched, extraInfo } =
+    useField({
+      name,
+      ancestors,
+      defaultValue,
+      depFields,
+      validate: validate
+        ? validate
+        : (value) => {
+            if (required && !value) {
+              return 'Required';
+            }
+            return null;
+          },
+    });
 
   const fieldProps = {
     value: fieldValue ?? '',
@@ -57,7 +58,10 @@ export const Field = (props: IField) => {
       setFieldValue(val);
       handleChange?.(val);
     },
+    onBlur,
     error,
+    touched,
+    extraInfo,
   };
 
   if (typeof children === 'function') {
