@@ -5,7 +5,10 @@ import { IAncestorInput } from './types';
 interface IRenderProps {
   value: any;
   onChange: (data: any, extraInfo?: any) => void;
+  onBlur: () => void;
   error: string | null | undefined;
+  touched: boolean | undefined;
+  extraInfo: any | undefined;
 }
 
 type RenderProps = (props: IRenderProps) => void;
@@ -67,7 +70,14 @@ export const Field = (props: IField) => {
   if (typeof children === 'function') {
     return (
       <>
-        {children({ value: fieldValue ?? '', onChange: setFieldValue, error })}
+        {children({
+          value: fieldValue ?? '',
+          onChange: setFieldValue,
+          onBlur,
+          error,
+          touched,
+          extraInfo,
+        })}
       </>
     );
   } else {
