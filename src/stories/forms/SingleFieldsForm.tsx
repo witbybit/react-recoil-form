@@ -10,7 +10,7 @@ function SingleFieldsForm() {
   const { handleSubmit, resetInitialValues } = useForm({
     onSubmit,
     reinitializeOnSubmit: false,
-    initialValues: { value: 200, email: '' },
+    initialValues: { value: 200, email: null },
   });
 
   function onSubmit(values: any, extra: any) {
@@ -28,15 +28,15 @@ function SingleFieldsForm() {
           type="number"
           disabled={false}
           defaultValue={100}
+          validate={(value) => {
+            return value < 100 ? 'number should be >= 100' : null;
+          }}
         />
 
         <InputField
           name="email"
           type="text"
           depFields={['name']}
-          validate={(value) => {
-            return !value ? 'Email has to be present' : null;
-          }}
         />
 
         <WatchField fieldId="name" />

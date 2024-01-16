@@ -128,7 +128,7 @@ export function useField<D = any, E = any>(props: IFieldProps<D>) {
             const initialValue = getPathInObj(initialValues.values, name);
             const extraInfo = getPathInObj(initialValues.extraInfos, name);
             set(fieldAtom, {
-              data: initialValue ?? defaultValue ?? undefined,
+              data: initialValue === undefined ? defaultValue : initialValue,
               error: undefined,
               extraInfo,
               validate,
