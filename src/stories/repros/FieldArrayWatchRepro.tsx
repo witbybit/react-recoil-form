@@ -167,11 +167,12 @@ const FieldGroup = ({ ancestors, onRemove }: any) => {
   });
 
   const watchValues = useFieldArrayColumnWatch({
+    ancestors,
     fieldArrayName: 'groupFilters',
     fieldNames: ['name', 'age'],
   }).values;
 
-  console.log(watchValues);
+  console.log('Watch nested field group = ', watchValues);
 
   return (
     <div className="border p-4 rounded m-4">

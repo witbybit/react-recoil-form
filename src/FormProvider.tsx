@@ -270,11 +270,12 @@ export function useFieldWatch(props: IFieldWatchParams) {
 }
 
 export function useFieldArrayColumnWatch(props: IFieldArrayColWatchParams) {
-  const { fieldArrayName, fieldNames, formId: extFormId } = props;
+  const { fieldArrayName, fieldNames, formId: extFormId, ancestors } = props;
   const contextFormId = useContext(FormIdContext);
   const formId = extFormId ?? contextFormId;
   const selector = fieldArrayColAtomValueSelectorFamily({
     formId,
+    ancestors,
     fieldArrayName,
     fieldNames,
   });
