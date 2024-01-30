@@ -160,26 +160,37 @@ function FieldArrayWatchRepro() {
 export default withFormProvider(FieldArrayWatchRepro);
 
 const FieldGroup = ({ ancestors, onRemove }: any) => {
+  const fieldArrName = 'filters';
   const { fieldArrayProps, remove, append } = useFieldArray({
     fieldNames: ['name', 'age', 'type'],
-    name: 'groupFilters',
+    name: fieldArrName,
     ancestors,
   });
 
   const watchValues = useFieldArrayColumnWatch({
     ancestors,
-    fieldArrayName: 'groupFilters',
-    fieldNames: ['name', 'age'],
+    fieldArrayName: fieldArrName,
+    fieldNames: ['name', 'age', 'type'],
   }).values;
-
-  console.log('Watch nested field group = ', watchValues);
 
   return (
     <div className="border p-4 rounded m-4">
       {fieldArrayProps.rowIds.map((r, idx) => {
         const groupAncestors = (ancestors ?? [])?.concat([
-          { name: 'groupFilters', rowId: r },
+          { name: fieldArrName, rowId: r },
         ]);
+
+        if (watchValues?.[idx]?.type === 'group') {
+          if (groupAncestors?.length < 3) {
+            return (
+              <FieldGroup
+                ancestors={groupAncestors}
+                onRemove={() => remove(idx)}
+              />
+            );
+          }
+          return null;
+        }
 
         return (
           <div className="flex gap-3" key={r}>
@@ -220,6 +231,18 @@ const FieldGroup = ({ ancestors, onRemove }: any) => {
       <div className="flex gap-4">
         <Button small type="button" onClick={() => append()}>
           Add Filter
+        </Button>
+        <Button
+          small
+          type="button"
+          onClick={() =>
+            append({
+              type: 'group',
+            })
+          }
+          color="yellow"
+        >
+          Add Group
         </Button>
         <Button small color="red" type="button" onClick={onRemove}>
           Remove
