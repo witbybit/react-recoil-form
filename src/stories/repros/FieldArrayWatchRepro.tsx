@@ -2,7 +2,7 @@ import { shuffle } from 'lodash';
 import * as React from 'react';
 import {
   useFieldArray,
-  useFieldArrayColumnWatch,
+  useFieldWatch,
   useForm,
   withFormProvider,
 } from '../../FormProvider';
@@ -44,11 +44,6 @@ function FieldArrayWatchRepro() {
     name: 'filters',
   });
 
-  const watchValues = useFieldArrayColumnWatch({
-    fieldArrayName: 'filters',
-    fieldNames: ['type'],
-  }).values;
-
   function reorder() {
     const values = getFieldArrayValue();
 
@@ -63,49 +58,7 @@ function FieldArrayWatchRepro() {
         <div>
           <div>
             {fieldArrayProps.rowIds.map((r, idx) => {
-              const type = watchValues?.[idx]?.type;
-              if (type === 'group') {
-                return (
-                  <FieldGroup
-                    ancestors={[{ name: 'filters', rowId: r }]}
-                    onRemove={() => remove(idx)}
-                  />
-                );
-              } else
-                return (
-                  <div className="flex gap-3" key={r}>
-                    <React.Fragment>
-                      <div className="px-2">
-                        <InputField
-                          ancestors={[{ name: 'filters', rowId: r }]}
-                          name="name"
-                          type="text"
-                          // validate={(value) => (!value ? `Value missing` : '')}
-                        />
-                      </div>
-                      <div className="px-2">
-                        <InputField
-                          ancestors={[{ name: 'filters', rowId: r }]}
-                          name="age"
-                          type="number"
-                          // validate={(value) => (!value ? `Value missing` : '')}
-                        />
-                      </div>
-                      <div className="px-2">
-                        <div className="flex gap-2 mt-6">
-                          <Button
-                            small
-                            color="red"
-                            type="button"
-                            onClick={() => remove(idx)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    </React.Fragment>
-                  </div>
-                );
+              return <FilterFieldArrayRow ancestors={[{ name: 'filters', rowId: r }]} idx={idx} remove={remove}/>;
             })}
           </div>
 
@@ -157,6 +110,55 @@ function FieldArrayWatchRepro() {
   );
 }
 
+function FilterFieldArrayRow(props: {
+  ancestors: { name: string; rowId: number }[];
+  remove: any;
+  idx: number;
+}) {
+  const { ancestors, idx, remove } = props;
+  const {values} = useFieldWatch({
+    fieldNames: [{ancestors, name: 'type'}],
+  })
+
+  if (values.type === 'group') {
+    return <FieldGroup ancestors={ancestors} onRemove={() => remove(idx)} />;
+  } else
+    return (
+      <div className="flex gap-3" key={idx}>
+        <React.Fragment>
+          <div className="px-2">
+            <InputField
+              ancestors={ancestors}
+              name="name"
+              type="text"
+              // validate={(value) => (!value ? `Value missing` : '')}
+            />
+          </div>
+          <div className="px-2">
+            <InputField
+              ancestors={ancestors}
+              name="age"
+              type="number"
+              // validate={(value) => (!value ? `Value missing` : '')}
+            />
+          </div>
+          <div className="px-2">
+            <div className="flex gap-2 mt-6">
+              <Button
+                small
+                color="red"
+                type="button"
+                onClick={() => remove(idx)}
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        </React.Fragment>
+      </div>
+    );
+}
+
 export default withFormProvider(FieldArrayWatchRepro);
 
 const FieldGroup = ({ ancestors, onRemove }: any) => {
@@ -167,66 +169,16 @@ const FieldGroup = ({ ancestors, onRemove }: any) => {
     ancestors,
   });
 
-  const watchValues = useFieldArrayColumnWatch({
-    ancestors,
-    fieldArrayName: fieldArrName,
-    fieldNames: ['name', 'age', 'type'],
-  }).values;
-
   return (
     <div className="border p-4 rounded m-4">
       {fieldArrayProps.rowIds.map((r, idx) => {
         const groupAncestors = (ancestors ?? [])?.concat([
           { name: fieldArrName, rowId: r },
         ]);
-
-        if (watchValues?.[idx]?.type === 'group') {
-          if (groupAncestors?.length < 3) {
-            return (
-              <FieldGroup
-                ancestors={groupAncestors}
-                onRemove={() => remove(idx)}
-              />
-            );
-          }
-          return null;
-        }
-
-        return (
-          <div className="flex gap-3" key={r}>
-            <React.Fragment>
-              <div className="px-2">
-                <InputField
-                  ancestors={groupAncestors}
-                  name="name"
-                  type="text"
-                  // validate={(value) => (!value ? `Value missing` : '')}
-                />
-              </div>
-              <div className="px-2">
-                <InputField
-                  ancestors={groupAncestors}
-                  name="age"
-                  type="number"
-                  // validate={(value) => (!value ? `Value missing` : '')}
-                />
-              </div>
-              <div className="px-2">
-                <div className="flex gap-2 mt-6">
-                  <Button
-                    small
-                    color="red"
-                    type="button"
-                    onClick={() => remove(idx)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            </React.Fragment>
-          </div>
-        );
+        return <NestedFilterFieldRow ancestors={groupAncestors} idx={idx} remove={remove} key={r}/>
       })}
+
+       
 
       <div className="flex gap-4">
         <Button small type="button" onClick={() => append()}>
@@ -251,3 +203,60 @@ const FieldGroup = ({ ancestors, onRemove }: any) => {
     </div>
   );
 };
+
+function NestedFilterFieldRow(props: {
+  ancestors: { name: string; rowId: number }[];
+  remove: any;
+  idx: number;
+}) {
+  const { ancestors, idx, remove } = props;
+  const {values} = useFieldWatch({
+    fieldNames: [{ancestors, name: 'type'}],
+  });
+  if (values?.type === 'group') {
+    if (ancestors?.length < 3) {
+      return (
+        <FieldGroup
+          ancestors={ancestors}
+          onRemove={() => remove(idx)}
+        />
+      );
+    }
+    return null;
+  }
+
+  return (
+    <div className="flex gap-3" key={idx}>
+      <React.Fragment>
+        <div className="px-2">
+          <InputField
+            ancestors={ancestors}
+            name="name"
+            type="text"
+            // validate={(value) => (!value ? `Value missing` : '')}
+          />
+        </div>
+        <div className="px-2">
+          <InputField
+            ancestors={ancestors}
+            name="age"
+            type="number"
+            // validate={(value) => (!value ? `Value missing` : '')}
+          />
+        </div>
+        <div className="px-2">
+          <div className="flex gap-2 mt-6">
+            <Button
+              small
+              color="red"
+              type="button"
+              onClick={() => remove(idx)}
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      </React.Fragment>
+    </div>
+  );
+}

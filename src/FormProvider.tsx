@@ -838,8 +838,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               skipUnregister,
             } as Partial<IFieldArrayAtomValue>)
         );
-        // Values are only initialized for fields or field arrays without ancestors
-        if (!ancestors?.length && initialValue?.length) {
+        if (initialValue?.length) {
           setFieldArrayDataAndExtraInfo(
             formId,
             { name, ancestors: ancestors ?? [] },
