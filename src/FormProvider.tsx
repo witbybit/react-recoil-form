@@ -985,8 +985,8 @@ const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
           if (f.param.name === ancestors[i].name) {
             for (let j = 0; j < i; j++) {
               if (
-                f.param.ancestors[j].name !== ancestors[j].name ||
-                f.param.ancestors[j].rowId !== ancestors[j].rowId
+                f.param.ancestors?.[j]?.name !== ancestors[j].name ||
+                f.param.ancestors?.[j]?.rowId !== ancestors[j].rowId
               ) {
                 return false;
               }
