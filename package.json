@@ -1,6 +1,6 @@
 {
   "name": "react-recoil-form",
-  "version": "0.8.0-beta.0",
+  "version": "0.8.0",
   "license": "MIT",
   "author": "Wit By Bit",
   "main": "dist/index.js",
@@ -49,9 +49,9 @@
     "recoil": "0.7.7",
     "storybook": "7.0.6",
     "tslib": "^2.4.0",
-    "tsup": "^6.7.0",
+    "tsup": "^8.0.2",
     "typescript": "4.7.4",
-    "vite": "^4.3.9"
+    "vite": "^4.5.2"
   },
   "lint-staged": {
     "*": "prettier --ignore-unknown --write"
