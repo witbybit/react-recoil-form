@@ -295,20 +295,26 @@ export function useIsDirty(options?: IIsDirtyProps) {
   return !isDeepEqual(initialValues, updatedFormValues);
 }
 
-export function useFormValues() {
-  const formId = useContext(FormIdContext);
+export function useFormValues(params?: { formId?: string }) {
+  const { formId: overrideFormId } = params ?? {};
+  const defaultFormId = useContext(FormIdContext);
+  const formId = overrideFormId ?? defaultFormId;
   const { values: formValues } = useRecoilValue(formValuesAtom(formId));
   return formValues;
 }
 
-export function useFormValuesAndExtraInfos() {
-  const formId = useContext(FormIdContext);
+export function useFormValuesAndExtraInfos(params?: { formId?: string }) {
+  const { formId: overrideFormId } = params ?? {};
+  const defaultFormId = useContext(FormIdContext);
+  const formId = overrideFormId ?? defaultFormId;
   const { values, extraInfos } = useRecoilValue(formValuesAtom(formId));
-  return {values, extraInfos};
+  return { values, extraInfos };
 }
 
-export function useInitialValues() {
-  const formId = useContext(FormIdContext);
+export function useInitialValues(params?: { formId?: string }) {
+  const { formId: overrideFormId } = params ?? {};
+  const defaultFormId = useContext(FormIdContext);
+  const formId = overrideFormId ?? defaultFormId;
   const { values } = useRecoilValue(formInitialValuesAtom(formId));
   return values;
 }
