@@ -1,6 +1,6 @@
 {
   "name": "react-recoil-form",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "license": "MIT",
   "author": "Wit By Bit",
   "main": "dist/index.js",

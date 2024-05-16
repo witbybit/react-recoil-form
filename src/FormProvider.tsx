@@ -30,6 +30,7 @@ import {
 } from './atoms';
 import { generateFormId, getFullObjectPath, snapshotToGet } from './atomUtils';
 import {
+  IAncestorInput,
   IFieldArrayAtomValue,
   IFieldArrayColWatchParams,
   IFieldArrayProps,
@@ -332,6 +333,7 @@ export function useFormContext(params?: { formId?: string }) {
     ({ set, get }) =>
       (
         fieldValues: {
+          ancestors?: IAncestorInput[];
           name: string;
           value: any;
           extraInfo?: any;
@@ -351,7 +353,7 @@ export function useFormContext(params?: { formId?: string }) {
           const fieldKey: IFormContextFieldInput = {
             type: 'field',
             name: field.name,
-            ancestors: [],
+            ancestors: field.ancestors ?? [],
           };
           set(
             fieldAtomFamily({
