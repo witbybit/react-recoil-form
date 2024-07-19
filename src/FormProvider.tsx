@@ -16,13 +16,14 @@ import {
   useSetRecoilState,
   useRecoilCallback,
   RecoilValue,
+  Snapshot,
 } from 'recoil';
 import {
   combinedFieldAtomValues,
   fieldArrayColAtomValueSelectorFamily,
   fieldAtomFamily,
   formInitialValuesAtom,
-  formValidationAtom,
+  formPropsOverrideAtom as formPropsOverrideAtom,
   formValuesAtom,
   getFieldArrayDataAndExtraInfo,
   multipleFieldsSelectorFamily,
@@ -41,7 +42,7 @@ import {
   IFieldWatchParams,
   IFormContextFieldInput,
   IFormProps,
-  IFormValidationAtomValue,
+  IFormPropsOverrideAtomValue,
   IIsDirtyProps,
   InitialValues,
   IRemoveFieldParams,
@@ -307,12 +308,12 @@ export function useFormValues(params?: { formId?: string }) {
   return formValues;
 }
 
-export function useSetFormValidate(params?: { formId?: string }) {
+export function useSetFormProps(params?: { formId?: string }) {
   const { formId: overrideFormId } = params ?? {};
   const defaultFormId = useContext(FormIdContext);
   const formId = overrideFormId ?? defaultFormId;
-  const setFormValidate = useSetRecoilState(formValidationAtom(formId));
-  return { setFormValidate };
+  const setFormProps = useSetRecoilState(formPropsOverrideAtom(formId));
+  return setFormProps;
 }
 
 export function useFormValuesAndExtraInfos(params?: { formId?: string }) {
@@ -586,6 +587,27 @@ export function useFormContext(params?: { formId?: string }) {
     [formId]
   );
 
+  const validateAllFieldsInternal = useRecoilCallback(
+    ({ snapshot, set }) => getValidateAllFieldsFn({ snapshot, set, formId }),
+    [formId]
+  );
+
+  const getValuesAndExtraInfo = useRecoilCallback(
+    ({ snapshot }) =>
+      () => {
+        const get = (atom: RecoilValue<any>) =>
+          snapshot.getLoadable(atom).contents;
+        return getFormValues(formId, get);
+      },
+    []
+  );
+
+  const validateAllFields = useCallback(() => {
+    const { values, extraInfos } = getValuesAndExtraInfo();
+    const errors = validateAllFieldsInternal(values, extraInfos);
+    return errors;
+  }, [getValuesAndExtraInfo, validateAllFieldsInternal]);
+
   return {
     getValue,
     setValue,
@@ -594,6 +616,8 @@ export function useFormContext(params?: { formId?: string }) {
     checkIsDirty,
     removeFields,
     resetInitialValues,
+    validateAllFields,
+    getValuesAndExtraInfo,
   };
 }
 
@@ -1011,6 +1035,60 @@ const getFormValues = (formId: string, get: (val: RecoilValue<any>) => any) => {
   return { values, extraInfos };
 };
 
+function getValidateAllFieldsFn(props: {
+  snapshot: Snapshot;
+  formId: string;
+  set: <T>(
+    recoilVal: RecoilState<T>,
+    valOrUpdater: ((currVal: T) => T) | T
+  ) => void;
+}) {
+  const { snapshot, formId, set } = props;
+  return (values: any, extraInfos: any) => {
+    const get = (atom: RecoilValue<any>) => snapshot.getLoadable(atom).contents;
+    const errors: IFieldError[] = [];
+    for (const fieldAtomInfo of Object.values(
+      combinedFieldAtomValues[formId]?.fields ?? {}
+    )) {
+      const fieldAtom = fieldAtomFamily(fieldAtomInfo.param);
+      const formFieldData = get(fieldAtom) as IFieldAtomValue;
+      const errorMsg = formFieldData.validate?.(formFieldData.data, {
+        values,
+        extraInfos,
+      });
+      if (errorMsg) {
+        set(fieldAtom, (val) =>
+          Object.assign({}, val, { error: errorMsg, touched: true })
+        );
+        errors.push({
+          error: errorMsg,
+          ancestors: fieldAtomInfo.param.ancestors,
+          name: fieldAtomInfo.param.name,
+          type: 'field',
+        });
+      }
+    }
+    for (const fieldArrayAtomInfo of Object.values(
+      combinedFieldAtomValues[formId]?.fieldArrays ?? {}
+    )) {
+      const { errors: fieldArrayErrors } = getFieldArrayDataAndExtraInfo(
+        formId,
+        fieldArrayAtomInfo.param,
+        get,
+        {
+          isValidation: true,
+          set,
+          skipFieldCheck: true,
+        }
+      );
+      if (fieldArrayErrors?.length) {
+        errors.push(...fieldArrayErrors);
+      }
+    }
+    return errors;
+  };
+}
+
 export function useForm(props: IFormProps) {
   const {
     initialValues,
@@ -1027,8 +1105,8 @@ export function useForm(props: IFormProps) {
   const initValuesVer = useRef(0);
   const isFormMounted = useRef(false);
   const getValidateFnFromAtom = useRecoilCallback(({ snapshot }) => () => {
-    const validationFn = snapshot.getLoadable(formValidationAtom(formId))
-      .contents as IFormValidationAtomValue;
+    const validationFn = snapshot.getLoadable(formPropsOverrideAtom(formId))
+      .contents as IFormPropsOverrideAtomValue;
     return validationFn?.validate;
   });
 
@@ -1242,51 +1320,7 @@ export function useForm(props: IFormProps) {
   );
 
   const validateAllFieldsInternal = useRecoilCallback(
-    ({ snapshot, set }) =>
-      (values: any, extraInfos: any) => {
-        const get = (atom: RecoilValue<any>) =>
-          snapshot.getLoadable(atom).contents;
-        const errors: IFieldError[] = [];
-        for (const fieldAtomInfo of Object.values(
-          combinedFieldAtomValues[formId]?.fields ?? {}
-        )) {
-          const fieldAtom = fieldAtomFamily(fieldAtomInfo.param);
-          const formFieldData = get(fieldAtom) as IFieldAtomValue;
-          const errorMsg = formFieldData.validate?.(formFieldData.data, {
-            values,
-            extraInfos,
-          });
-          if (errorMsg) {
-            set(fieldAtom, (val) =>
-              Object.assign({}, val, { error: errorMsg, touched: true })
-            );
-            errors.push({
-              error: errorMsg,
-              ancestors: fieldAtomInfo.param.ancestors,
-              name: fieldAtomInfo.param.name,
-              type: 'field',
-            });
-          }
-        }
-        for (const fieldArrayAtomInfo of Object.values(
-          combinedFieldAtomValues[formId]?.fieldArrays ?? {}
-        )) {
-          const { errors: fieldArrayErrors } = getFieldArrayDataAndExtraInfo(
-            formId,
-            fieldArrayAtomInfo.param,
-            get,
-            {
-              isValidation: true,
-              set,
-              skipFieldCheck: true,
-            }
-          );
-          if (fieldArrayErrors?.length) {
-            errors.push(...fieldArrayErrors);
-          }
-        }
-        return errors;
-      },
+    ({ snapshot, set }) => getValidateAllFieldsFn({ snapshot, set, formId }),
     [formId]
   );
 

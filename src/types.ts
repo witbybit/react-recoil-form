@@ -188,6 +188,6 @@ export interface IFormProps {
   skipUnusedInitialValues?: boolean;
 }
 
-export interface IFormValidationAtomValue {
+export interface IFormPropsOverrideAtomValue {
   validate: IFormProps['validate'] | null;
 }

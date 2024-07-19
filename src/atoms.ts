@@ -10,7 +10,7 @@ import {
   IFieldAtomSelectorInput,
   IFieldAtomValue,
   IFieldError,
-  IFormValidationAtomValue,
+  IFormPropsOverrideAtomValue,
   IGetFieldArrayInput,
   InitialValues,
 } from './types';
@@ -21,11 +21,11 @@ export const formValuesAtom = atomFamily<FinalValues, string>({
   default: { values: {}, extraInfos: {} },
 });
 
-export const formValidationAtom = atomFamily<
-IFormValidationAtomValue,
+export const formPropsOverrideAtom = atomFamily<
+IFormPropsOverrideAtomValue,
   string
 >({
-  key: gan('FormValidation'),
+  key: gan('FormPropsOverride'),
   default: { validate: null },
 });
 
