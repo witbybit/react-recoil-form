@@ -10,6 +10,7 @@ import {
   IFieldAtomSelectorInput,
   IFieldAtomValue,
   IFieldError,
+  IFormValidationAtomValue,
   IGetFieldArrayInput,
   InitialValues,
 } from './types';
@@ -18,6 +19,14 @@ import { getPathInObj, isUndefined, setPathInObj } from './utils';
 export const formValuesAtom = atomFamily<FinalValues, string>({
   key: gan('FormValues'),
   default: { values: {}, extraInfos: {} },
+});
+
+export const formValidationAtom = atomFamily<
+IFormValidationAtomValue,
+  string
+>({
+  key: gan('FormValidation'),
+  default: { validate: null },
 });
 
 export const formInitialValuesAtom = atomFamily<InitialValues, string>({
@@ -71,7 +80,7 @@ export const fieldAtomFamily = atomFamily<
   },
   // TODO: Rename to effects for recoil 0.6
   // effects_UNSTABLE is still supported and will allow older versions of recoil to work
-  effects_UNSTABLE: (param) => [
+  effects: (param) => [
     ({ onSet, node }) => {
       onSet((newValue) => {
         if (!combinedFieldAtomValues[param.formId]) {
