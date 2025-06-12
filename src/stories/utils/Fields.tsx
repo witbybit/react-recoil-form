@@ -201,6 +201,14 @@ export function TableField(props: TableFieldProps) {
                     <div className="flex gap-2">
                       <Button
                         small
+                        color="yellow"
+                        type="button"
+                        onClick={() => tableField.clear(idx)}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        small
                         color="red"
                         type="button"
                         onClick={() => tableField.remove(idx)}
@@ -218,7 +226,7 @@ export function TableField(props: TableFieldProps) {
                           )
                         }
                       >
-                        Duplicate Row
+                        Duplicate
                       </Button>
                     </div>
                   </td>
