@@ -737,6 +737,30 @@ export function useFieldArray(props: IFieldArrayProps) {
     [name, ancestors, formId]
   );
 
+  const clear = useRecoilTransaction_UNSTABLE(
+    ({ get, reset }) =>
+      (index: number) => {
+        const fieldArrayAtomValue = get(
+          fieldAtomFamily({
+            ancestors: ancestors ?? [],
+            name,
+            type: 'field-array',
+            formId,
+          })
+        ) as IFieldArrayAtomValue;
+        let rowIdToClear = fieldArrayAtomValue.rowIds[index];
+        if (rowIdToClear !== null) {
+          resetFieldArrayRow(
+            formId,
+            { name, rowId: rowIdToClear, ancestors: ancestors ?? [] },
+            get,
+            reset
+          );
+        }
+      },
+    [name, ancestors, formId]
+  );
+
   const remove = useRecoilTransaction_UNSTABLE(
     ({ set, get, reset }) =>
       (index: number) => {
@@ -956,6 +980,7 @@ export function useFieldArray(props: IFieldArrayProps) {
   return {
     append,
     remove,
+    clear,
     fieldArrayProps,
     insert,
     validateData,
@@ -1354,7 +1379,7 @@ export function useForm(props: IFormProps) {
               if (isSuccess !== false) {
                 // Make initial values same as final values in order to set isDirty as false after submit
                 updateInitialValues(
-                  props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+                  props?.reinitializeOnSubmit ? (initialValues ?? {}) : values,
                   { skipUnregister, skipUnusedInitialValues },
                   props?.reinitializeOnSubmit ? {} : extraInfos
                 );
@@ -1374,7 +1399,7 @@ export function useForm(props: IFormProps) {
       } else {
         setFormState({ isSubmitting: false });
         updateInitialValues(
-          props?.reinitializeOnSubmit ? initialValues ?? {} : values,
+          props?.reinitializeOnSubmit ? (initialValues ?? {}) : values,
           { skipUnregister, skipUnusedInitialValues },
           props?.reinitializeOnSubmit ? {} : extraInfos
         );
@@ -1458,9 +1483,8 @@ export function FormProvider(props: {
 
 export const withFormProvider =
   (Component: any, options?: FormProviderOptions) =>
-  ({ ...props }) =>
-    (
-      <FormProvider options={options}>
-        <Component {...props} />
-      </FormProvider>
-    );
+  ({ ...props }) => (
+    <FormProvider options={options}>
+      <Component {...props} />
+    </FormProvider>
+  );
