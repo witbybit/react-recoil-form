@@ -905,7 +905,7 @@ export function useFieldArray(props: IFieldArrayProps) {
               skipUnregister,
             } as Partial<IFieldArrayAtomValue>)
         );
-        if (initialValue?.length) {
+        if (Array.isArray(initialValue)) {
           setFieldArrayDataAndExtraInfo(
             formId,
             { name, ancestors: ancestors ?? [] },
