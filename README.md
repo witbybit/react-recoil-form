@@ -1,3 +1,10 @@
+
+> [!CAUTION]
+> **This library is deprecated and is no longer maintained.**
+>
+> Please migrate to **[wit-form](https://github.com/witbybit/wit-form)**, which uses **Jotai** instead of Recoil.
+
+
 # React Recoil Form
 
 The idea behind ths library is to use Recoil for managing a form and treat state of every field like an atom. The main motivation for this library was to handle large forms with ease such that typing in one field doesn't lead to a re-render of the entire form. We have the following features so far:-
